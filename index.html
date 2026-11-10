@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Curioteca Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  /* Panel de control: una columna, el vídeo de hoy arriba, el historial debajo. */
+  :root {
+    --bg: #faf8f5; --panel: #ffffff; --fg: #1d1a17; --muted: #6f655c; --line: #e8e1d9;
+    --accent: #ff6a1a; --accent-soft: #fff0e6;
+    --ok: #1f8a4c; --warn: #b7791f; --bad: #c0392b; --off: #a39a91;
+    --display: "Fraunces", Georgia, serif; --body: "Figtree", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151311; --panel: #1e1b18; --fg: #f2ede7; --muted: #a59a8f; --line: #332e29;
+      --accent: #ff7d38; --accent-soft: #3a2416; --ok: #3fbf74; --warn: #e0a640; --bad: #ef6b5b; --off: #6d655d; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); margin: 0; letter-spacing: -.01em; }
+  h1 span { color: var(--accent); }
+  .live { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .dot.stale { background: var(--off); }
+  @media (prefers-reduced-motion: no-preference) { .dot.on { animation: pulse 2s infinite; } @keyframes pulse { 50% { opacity: .3; } } }
+  h2 { font-family: var(--display); font-weight: 500; font-size: 21px; margin: 0 0 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .now { border-color: var(--accent); background: linear-gradient(var(--accent-soft), var(--panel) 70%); }
+  .now .title { font-family: var(--display); font-size: 22px; margin: 4px 0 14px; text-wrap: balance; }
+  .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .steps li { border-top: 4px solid var(--line); padding-top: 8px; min-width: 0; }
+  .steps li.hecho { border-color: var(--ok); } .steps li.en_curso { border-color: var(--accent); } .steps li.fallo { border-color: var(--bad); } .steps li.omitido { border-color: var(--off); }
+  .steps .l { font-weight: 600; font-size: 14px; } .steps .d { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  @media (max-width: 640px) { .steps { grid-template-columns: 1fr; } .steps li { border-top: 0; border-left: 4px solid var(--line); padding: 2px 0 2px 10px; } .steps li.hecho { border-color: var(--ok);} .steps li.en_curso { border-color: var(--accent);} .steps li.fallo { border-color: var(--bad);} .steps li.omitido{border-color:var(--off);} }
+  .idle { color: var(--muted); margin: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .tile .n { font-family: var(--display); font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tile .s { font-size: 13px; color: var(--muted); }
+  .tile.bad .n { color: var(--bad); }
+  .pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+  .pipe .card { padding: 14px 16px; border-left: 4px solid var(--off); display: flex; flex-direction: column; gap: 4px; }
+  .pipe .card.ok { border-left-color: var(--ok); } .pipe .card.warn { border-left-color: var(--warn); } .pipe .card.bad { border-left-color: var(--bad); }
+  .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .chip { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+  .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.bad { color: var(--bad); } .chip.off { color: var(--muted); }
+  .small { font-size: 13px; color: var(--muted); }
+  .tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.n { text-align: right; font-family: var(--mono); font-size: 13px; }
+  td.why { color: var(--muted); min-width: 220px; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .res-ok { color: var(--ok); font-weight: 600; } .res-bad { color: var(--bad); font-weight: 600; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Curio<span>teca</span> Control</h1>
+    <div class="live"><span class="dot" id="dot"></span><span id="upd">Cargando…</span></div>
+  </header>
+
+  <section class="card" id="now">
+    <div class="eyebrow">Vídeo de hoy</div>
+    <p class="idle" id="idle">Cargando…</p>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section>
+    <h2>Estado de cada pieza</h2>
+    <div class="pipe" id="pipe"></div>
+  </section>
+
+  <section>
+    <h2>Vídeos</h2>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Título</th><th>Duración</th><th>Escenas</th><th>Publicado</th><th>Ver</th></tr></thead><tbody id="vids"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Ejecuciones</h2>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Resultado</th><th>Min</th><th>Tema</th><th>Motivo</th></tr></thead><tbody id="runs"></tbody></table></div>
+  </section>
+  <p class="small">Se actualiza solo cada 20 segundos. Los datos los escribe el propio programa en cada paso.</p>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else e.setAttribute(k, v); } kids.forEach((k) => e.append(k)); return e; };
+  const fmtDate = (s) => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); };
+  const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+  const ago = (iso) => { const s = (Date.now() - new Date(iso)) / 1000; if (s < 60) return 'hace unos segundos'; if (s < 3600) return `hace ${Math.round(s / 60)} min`; if (s < 86400) return `hace ${Math.round(s / 3600)} h`; return `hace ${Math.round(s / 86400)} días`; };
+  const cls = (e) => e === 'Funciona' ? 'ok' : e === 'Falla' ? 'bad' : e === 'Pendiente de verificar' ? 'warn' : 'off';
+  const STATE = { pendiente: 'Pendiente', en_curso: 'En curso…', hecho: 'Hecho', fallo: 'Falló', omitido: 'Omitido' };
+
+  function renderNow(st) {
+    const box = $('now'); box.replaceChildren(el('div', { class: 'eyebrow', text: 'Vídeo de hoy' }));
+    const cur = st.current;
+    if (cur) {
+      box.classList.add('now');
+      box.append(el('div', { class: 'title', text: cur.title || 'Eligiendo tema…' }));
+      const ul = el('ol', { class: 'steps' });
+      for (const s of cur.steps || []) ul.append(el('li', { class: s.state }, el('div', { class: 'l', text: s.label }), el('div', { class: 'd', text: (STATE[s.state] || s.state) + (s.detail ? ' · ' + s.detail : '') + (s.at ? ' · ' + fmtTime(s.at) : '') })));
+      box.append(ul, el('p', { class: 'small', text: `Empezó a las ${fmtTime(cur.started)} (${cur.trigger}). Tarda unos 25 minutos.` }));
+      return;
+    }
+    box.classList.remove('now');
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const last = (st.runs || []).find((r) => r.tipo !== 'Prueba manual' && r.fecha === today) || (st.runs || []).find((r) => r.fecha === today);
+    if (last) {
+      box.append(el('div', { class: 'title', text: last.tema || '—' }),
+        el('p', { class: 'idle' }, el('span', { class: last.resultado === 'Vídeo generado' ? 'res-ok' : 'res-bad', text: last.resultado }), ` a las ${last.hora}` + (last.motivo ? ` · ${last.motivo}` : '')));
+    } else {
+      const h = Number(new Date().toLocaleString('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }));
+      box.append(el('p', { class: 'idle', text: h < 14 ? 'Aún no ha empezado. El vídeo de hoy arranca a las 13:37.' : 'Todavía no hay vídeo de hoy. Si a las 15:00 sigue así, algo ha fallado al lanzarlo.' }));
+    }
+  }
+
+  function renderTiles(st) {
+    const runs = st.runs || [], vids = st.videos || [], comp = st.components || [];
+    const pub = vids.filter((v) => (v.publicado || '').startsWith('Sí')).length;
+    const days = new Set(runs.filter((r) => r.tipo === 'Diario').map((r) => r.fecha));
+    const okDays = new Set(runs.filter((r) => r.tipo === 'Diario' && r.resultado === 'Vídeo generado').map((r) => r.fecha));
+    const miss = [...days].filter((d) => !okDays.has(d)).length;
+    const t = (n, lab, sub, bad) => el('div', { class: 'card tile' + (bad ? ' bad' : '') }, el('div', { class: 'eyebrow', text: lab }), el('div', { class: 'n', text: String(n) }), el('div', { class: 's', text: sub }));
+    $('tiles').replaceChildren(
+      t(vids.length, 'Vídeos generados', 'Incluidas las pruebas'),
+      t(pub, 'Publicados', 'En alguna red'),
+      t(miss, 'Días fallidos', 'Días diarios que terminaron sin vídeo', miss > 0),
+      t(`${comp.filter((c) => c.estado === 'Funciona').length} / ${comp.length}`, 'Piezas funcionando', 'Del total del sistema'));
+  }
+
+  function renderPipe(st) {
+    $('pipe').replaceChildren(...(st.components || []).map((c) => el('div', { class: 'card ' + cls(c.estado) },
+      el('div', { class: 'row1' }, el('strong', { text: c.pieza }), el('span', { class: 'chip ' + cls(c.estado), text: c.estado })),
+      el('span', { class: 'small', text: c.grupo + ' · ' + c.detalle }))));
+  }
+
+  function renderTables(st) {
+    $('vids').replaceChildren(...(st.videos || []).map((v) => el('tr', {},
+      el('td', { text: fmtDate(v.fecha) }), el('td', { text: v.titulo || '—' }), el('td', { class: 'n', text: v.segundos ? v.segundos + ' s' : '—' }),
+      el('td', { text: v.escenas || '—' }), el('td', { text: v.publicado || 'No' }),
+      el('td', {}, v.url ? el('a', { href: v.url, target: '_blank', rel: 'noopener', text: 'Descargar' }) : '—'))));
+    $('runs').replaceChildren(...(st.runs || []).map((r) => el('tr', {},
+      el('td', { text: fmtDate(r.fecha) }), el('td', { text: r.hora }), el('td', { text: r.tipo }),
+      el('td', {}, el('span', { class: r.resultado === 'Vídeo generado' ? 'res-ok' : 'res-bad', text: r.resultado })),
+      el('td', { class: 'n', text: r.minutos ?? '—' }), el('td', { text: r.tema || '—' }), el('td', { class: 'why', text: r.motivo || '' }))));
+  }
+
+  async function load() {
+    try {
+      const res = await fetch('status.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const st = await res.json();
+      renderNow(st); renderTiles(st); renderPipe(st); renderTables(st);
+      $('upd').textContent = 'Actualizado ' + ago(st.updated);
+      $('dot').className = 'dot on' + ((Date.now() - new Date(st.updated)) > 3 * 86400e3 ? ' stale' : '');
+    } catch (e) {
+      $('upd').textContent = 'No se pudo leer el estado (' + e.message + '). Reintentando…';
+      $('upd').classList.add('err'); $('dot').className = 'dot stale';
+    }
+  }
+  load(); setInterval(load, 20000);
+</script>
+</body>
+</html>
