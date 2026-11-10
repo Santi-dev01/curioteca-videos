@@ -2,238 +2,473 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d0f13">
 <title>Curioteca Control</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  /* Panel de control: una columna, el vídeo de hoy arriba, el historial debajo. */
+  /* Sala de control nocturna: un gran "ahora" arriba, la cadena de fases, y el archivo de vídeos debajo. */
   :root {
-    --bg: #faf8f5; --panel: #ffffff; --fg: #1d1a17; --muted: #6f655c; --line: #e8e1d9;
-    --accent: #ff6a1a; --accent-soft: #fff0e6;
-    --ok: #1f8a4c; --warn: #b7791f; --bad: #c0392b; --off: #a39a91;
-    --display: "Fraunces", Georgia, serif; --body: "Figtree", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #151311; --panel: #1e1b18; --fg: #f2ede7; --muted: #a59a8f; --line: #332e29;
-      --accent: #ff7d38; --accent-soft: #3a2416; --ok: #3fbf74; --warn: #e0a640; --bad: #ef6b5b; --off: #6d655d; color-scheme: dark; }
+    --ink: #0d0f13; --ink-2: #14171d; --ink-3: #1b1f27; --line: #262b35;
+    --text: #eef0f3; --dim: #8b93a1; --faint: #5b6270;
+    --orange: #ff6a1a; --orange-2: #ffb07a; --glow: rgba(255, 106, 26, .35);
+    --ok: #3ddc97; --bad: #ff5d6c; --wait: #f5b942;
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "Figtree", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+    --r: 18px; color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
-  .wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px; }
-  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); margin: 0; letter-spacing: -.01em; }
-  h1 span { color: var(--accent); }
-  .live { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
-  .dot.stale { background: var(--off); }
-  @media (prefers-reduced-motion: no-preference) { .dot.on { animation: pulse 2s infinite; } @keyframes pulse { 50% { opacity: .3; } } }
-  h2 { font-family: var(--display); font-weight: 500; font-size: 21px; margin: 0 0 12px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-  .now { border-color: var(--accent); background: linear-gradient(var(--accent-soft), var(--panel) 70%); }
-  .now .title { font-family: var(--display); font-size: 22px; margin: 4px 0 14px; text-wrap: balance; }
-  .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-  .steps li { border-top: 4px solid var(--line); padding-top: 8px; min-width: 0; }
-  .steps li.hecho { border-color: var(--ok); } .steps li.en_curso { border-color: var(--accent); } .steps li.fallo { border-color: var(--bad); } .steps li.omitido { border-color: var(--off); }
-  .steps .l { font-weight: 600; font-size: 14px; } .steps .d { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
-  @media (max-width: 640px) { .steps { grid-template-columns: 1fr; } .steps li { border-top: 0; border-left: 4px solid var(--line); padding: 2px 0 2px 10px; } .steps li.hecho { border-color: var(--ok);} .steps li.en_curso { border-color: var(--accent);} .steps li.fallo { border-color: var(--bad);} .steps li.omitido{border-color:var(--off);} }
-  .idle { color: var(--muted); margin: 0; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
-  .tile .n { font-family: var(--display); font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .tile .s { font-size: 13px; color: var(--muted); }
-  .tile.bad .n { color: var(--bad); }
-  .pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
-  .pipe .card { padding: 14px 16px; border-left: 4px solid var(--off); display: flex; flex-direction: column; gap: 4px; }
-  .pipe .card.ok { border-left-color: var(--ok); } .pipe .card.warn { border-left-color: var(--warn); } .pipe .card.bad { border-left-color: var(--bad); }
-  .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .chip { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; white-space: nowrap; }
-  .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.bad { color: var(--bad); } .chip.off { color: var(--muted); }
-  .small { font-size: 13px; color: var(--muted); }
-  .tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
-  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  tr:last-child td { border-bottom: 0; }
-  td.n { text-align: right; font-family: var(--mono); font-size: 13px; }
-  td.why { color: var(--muted); min-width: 220px; }
-  a { color: var(--accent); }
-  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .res-ok { color: var(--ok); font-weight: 600; } .res-bad { color: var(--bad); font-weight: 600; }
-  .err { color: var(--bad); }
-  .login { max-width: 380px; display: flex; flex-direction: column; gap: 10px; }
-  .login label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
-  .login input { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
-  .login input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .btns { display: flex; gap: 10px; flex-wrap: wrap; }
-  button { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
-  button.sec { background: transparent; color: var(--accent); }
-  .linkbtn { background: none; border: 0; color: var(--muted); padding: 0; font-weight: 400; text-decoration: underline; cursor: pointer; }
+  html, body { margin: 0; background: var(--ink); color: var(--text); font: 15px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: -20vh -10vw auto; height: 70vh; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 0%, rgba(255, 106, 26, .16), transparent 60%), radial-gradient(ellipse at 90% 10%, rgba(61, 220, 151, .07), transparent 55%); }
+  .wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding-block: 28px 80px;
+    padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+  button { font: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 6px; }
+
+  /* cabecera */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 40px; height: 40px; border-radius: 12px; background: var(--orange); display: grid; place-items: center; box-shadow: 0 8px 30px var(--glow); }
+  .logo svg { width: 22px; height: 22px; }
+  .brand h1 { font: 800 22px/1 var(--display); margin: 0; letter-spacing: -.02em; }
+  .brand small { display: block; color: var(--dim); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-top: 4px; }
+  .live { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--ink-2); color: var(--dim); font-size: 13px; }
+  .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .live.on i { background: var(--ok); box-shadow: 0 0 0 0 rgba(61, 220, 151, .6); }
+
+  .card { background: linear-gradient(180deg, var(--ink-2), var(--ink-2)); border: 1px solid var(--line); border-radius: var(--r); }
+
+  /* AHORA */
+  .now { display: grid; grid-template-columns: auto 1fr; gap: 28px; padding: 26px; align-items: center; overflow: hidden; position: relative; }
+  .now.running { border-color: rgba(255, 106, 26, .5); box-shadow: 0 0 0 1px rgba(255, 106, 26, .15), 0 30px 80px -30px var(--glow); }
+  .ring { width: 168px; height: 168px; position: relative; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .track { stroke: var(--ink-3); }
+  .ring .bar { stroke: var(--orange); stroke-linecap: round; transition: stroke-dashoffset 1.2s cubic-bezier(.2, .8, .2, 1), stroke .4s; filter: drop-shadow(0 0 8px var(--glow)); }
+  .ring.done .bar { stroke: var(--ok); filter: drop-shadow(0 0 8px rgba(61, 220, 151, .4)); }
+  .ring.fail .bar { stroke: var(--bad); filter: none; }
+  .ring .mid { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring .pct { font: 800 40px/1 var(--display); letter-spacing: -.03em; }
+  .ring .sub { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; margin-top: 6px; }
+  .now .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--orange-2); }
+  .now h2 { font: 700 clamp(24px, 3.6vw, 36px)/1.1 var(--display); margin: 6px 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  .now .line { color: var(--dim); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .now .line b { color: var(--text); font-weight: 600; }
+  .clock { font-family: var(--mono); color: var(--text); background: var(--ink-3); border-radius: 8px; padding: 2px 8px; }
+  .shimmer { background: linear-gradient(90deg, var(--text) 0%, var(--orange-2) 50%, var(--text) 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* cadena de fases */
+  .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding: 18px 20px; }
+  .ph { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; min-width: 0; padding: 0 6px; }
+  .ph .dot { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--ink-3); border: 1px solid var(--line); color: var(--faint); position: relative; z-index: 2; transition: all .5s; }
+  .ph .dot svg { width: 20px; height: 20px; }
+  .ph .name { font-weight: 600; font-size: 14px; }
+  .ph .det { font-size: 12px; color: var(--dim); min-height: 18px; overflow-wrap: anywhere; }
+  .ph::after { content: ""; position: absolute; top: 22px; left: calc(50% + 26px); right: calc(-50% + 26px); height: 2px; background: var(--line); z-index: 1; }
+  .ph:last-child::after { display: none; }
+  .ph.hecho .dot { background: rgba(61, 220, 151, .12); border-color: var(--ok); color: var(--ok); }
+  .ph.hecho::after { background: var(--ok); }
+  .ph.en_curso .dot { background: rgba(255, 106, 26, .14); border-color: var(--orange); color: var(--orange); }
+  .ph.en_curso::after { background: repeating-linear-gradient(90deg, var(--orange) 0 8px, transparent 8px 16px); background-size: 32px 2px; }
+  .ph.fallo .dot { background: rgba(255, 93, 108, .12); border-color: var(--bad); color: var(--bad); }
+  .ph.omitido .dot { color: var(--dim); }
+
+  /* cifras */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .kpi { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .kpi .lab { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--dim); }
+  .kpi .num { font: 800 38px/1 var(--display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .kpi .num.bad { color: var(--bad); } .kpi .num.ok { color: var(--ok); }
+  .kpi .hint { font-size: 13px; color: var(--faint); }
+
+  .grid2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; align-items: start; }
+  .panel { padding: 20px; min-width: 0; }
+  .panel h3 { font: 700 18px/1.2 var(--display); margin: 0 0 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .panel h3 span { font: 400 13px var(--body); color: var(--dim); }
+
+  /* calendario */
+  .cal { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; }
+  .day { aspect-ratio: 1; border-radius: 7px; background: var(--ink-3); border: 1px solid var(--line); position: relative; }
+  .day.ok { background: var(--ok); border-color: transparent; } .day.bad { background: var(--bad); border-color: transparent; } .day.run { background: var(--orange); border-color: transparent; }
+  .day.today { outline: 2px solid var(--text); outline-offset: 2px; }
+  .cal-lab { display: flex; justify-content: space-between; font-size: 12px; color: var(--faint); margin-top: 8px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--dim); margin-top: 12px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+
+  /* piezas */
+  .parts { display: flex; flex-direction: column; gap: 4px; }
+  .part { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .part:last-child { border-bottom: 0; }
+  .part .led { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--faint); }
+  .part.ok .led { background: var(--ok); box-shadow: 0 0 10px rgba(61, 220, 151, .5); } .part.bad .led { background: var(--bad); } .part.warn .led { background: var(--wait); }
+  .part .t { flex: 1; min-width: 0; } .part .t b { display: block; font-weight: 600; font-size: 14px; } .part .t small { color: var(--dim); font-size: 12px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+  .part.ok .tag { color: var(--ok); border-color: rgba(61, 220, 151, .35); }
+
+  /* vídeos */
+  .vids { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  @media (max-width: 420px) { .vids { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+  .vid { border-radius: 14px; overflow: hidden; background: var(--ink-3); border: 1px solid var(--line); text-align: left; padding: 0; color: inherit; display: flex; flex-direction: column; transition: transform .25s, border-color .25s; }
+  .vid:hover { transform: translateY(-3px); border-color: rgba(255, 106, 26, .5); }
+  .vid .th { aspect-ratio: 9 / 16; max-height: 260px; width: 100%; background: linear-gradient(160deg, #2a1a12, #13161c); position: relative; display: grid; place-items: center; }
+  .vid .th img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .vid .th .play { position: relative; width: 46px; height: 46px; border-radius: 50%; background: rgba(13, 15, 19, .7); display: grid; place-items: center; backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, .15); }
+  .vid .th .dur { position: absolute; right: 8px; bottom: 8px; font: 500 12px var(--mono); background: rgba(13, 15, 19, .75); padding: 2px 6px; border-radius: 6px; }
+  .vid .th .pub { position: absolute; left: 8px; top: 8px; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(13, 15, 19, .75); color: var(--dim); }
+  .vid .th .pub.yes { color: var(--ok); }
+  .vid .meta { padding: 10px 12px 12px; } .vid .meta b { font-size: 14px; display: block; line-height: 1.3; } .vid .meta small { color: var(--dim); font-size: 12px; }
+  .vid.nofile { cursor: default; } .vid.nofile:hover { transform: none; border-color: var(--line); }
+
+  /* historial */
+  .runs { display: flex; flex-direction: column; }
+  .run { display: grid; grid-template-columns: 88px 14px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .run:last-child { border-bottom: 0; }
+  .run .when { font-family: var(--mono); font-size: 12px; color: var(--dim); line-height: 1.5; }
+  .run .mk { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: var(--faint); }
+  .run.ok .mk { background: var(--ok); } .run.bad .mk { background: var(--bad); }
+  .run .what b { font-weight: 600; } .run .what p { margin: 2px 0 0; color: var(--dim); font-size: 13px; }
+  .run .mins { font-family: var(--mono); font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .more { margin-top: 10px; background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 10px; padding: 8px 14px; }
+
+  /* login */
+  .gate { min-height: 82vh; display: grid; place-items: center; }
+  .gate .card { width: min(420px, 100%); padding: 30px; display: flex; flex-direction: column; gap: 14px; }
+  .gate h2 { font: 800 28px/1.1 var(--display); margin: 0; letter-spacing: -.02em; }
+  .gate p { margin: 0; color: var(--dim); }
+  .gate label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--dim); }
+  .gate input { font: inherit; color: var(--text); background: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; transition: border-color .2s; }
+  .gate input:focus { outline: none; border-color: var(--orange); }
+  .btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 600; background: var(--orange); color: #1a0d05; box-shadow: 0 10px 30px -10px var(--glow); }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); box-shadow: none; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; } .row .btn { flex: 1; }
+  .msg { font-size: 13px; color: var(--dim); min-height: 20px; }
+  .msg.err { color: var(--bad); }
+  .foot { color: var(--faint); font-size: 12px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .foot button { background: none; border: 0; color: var(--dim); text-decoration: underline; padding: 0; }
+
+  /* reproductor y avisos */
+  .modal { position: fixed; inset: 0; z-index: 50; background: rgba(5, 6, 8, .82); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 20px; }
+  .modal video { max-height: 86vh; max-width: 100%; border-radius: 16px; background: #000; box-shadow: 0 30px 90px rgba(0, 0, 0, .6); }
+  .modal .x { position: absolute; top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--ink-2); color: var(--text); font-size: 22px; line-height: 1; }
+  .modal .dl { position: absolute; bottom: max(18px, env(safe-area-inset-bottom, 0px)); color: var(--orange-2); }
+  .toasts { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: max(20px, env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+  .toast { background: var(--ink-3); border: 1px solid var(--line); border-left: 3px solid var(--ok); padding: 10px 16px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); font-size: 14px; }
+  .toast.bad { border-left-color: var(--bad); }
+  .skel { background: linear-gradient(90deg, var(--ink-3), #232833, var(--ink-3)); background-size: 200% 100%; border-radius: 10px; color: transparent !important; }
   [hidden] { display: none !important; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .live.on i { animation: ping 2s infinite; }
+    @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(61, 220, 151, .55); } 70% { box-shadow: 0 0 0 9px rgba(61, 220, 151, 0); } 100% { box-shadow: 0 0 0 0 rgba(61, 220, 151, 0); } }
+    .shimmer { animation: sh 2.4s linear infinite; } @keyframes sh { to { background-position: -200% 0; } }
+    .ph.en_curso::after { animation: flow 1s linear infinite; } @keyframes flow { to { background-position: 32px 0; } }
+    .ph.en_curso .dot { animation: breathe 1.6s ease-in-out infinite; } @keyframes breathe { 50% { box-shadow: 0 0 0 8px rgba(255, 106, 26, .12); } }
+    .reveal { animation: up .6s cubic-bezier(.2, .8, .2, 1) both; } @keyframes up { from { opacity: 0; transform: translateY(12px); } }
+    .toast { animation: tin .35s cubic-bezier(.2, .8, .2, 1) both; } @keyframes tin { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+    .skel { animation: sh 1.4s linear infinite; }
+  }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 620px) {
+    .now { grid-template-columns: 1fr; justify-items: center; text-align: center; } .now .line { justify-content: center; }
+    .ring { width: 140px; height: 140px; } .ring .pct { font-size: 32px; }
+    .flow { grid-template-columns: 1fr; gap: 6px; } .ph { flex-direction: row; text-align: left; gap: 12px; } .ph::after { display: none; } .ph .txt { display: flex; flex-direction: column; }
+    .run { grid-template-columns: 64px 12px 1fr; } .run .mins { display: none; }
+    .cal { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Curio<span>teca</span> Control</h1>
-    <div class="live"><span class="dot" id="dot"></span><span id="upd">Cargando…</span></div>
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1a0d05" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M9 8.6c.3-1 1.1-1.5 2-1.5 1.2 0 2 .8 2 1.8 0 1.4-2 1.5-2 2.9"/><circle cx="11" cy="13.6" r=".4" fill="#1a0d05"/></svg></div>
+      <div><h1>Curioteca</h1><small>Sala de control</small></div>
+    </div>
+    <div class="live" id="live"><i></i><span id="livetxt">Conectando…</span></div>
   </header>
 
-  <section class="card" id="loginbox" hidden>
-    <h2>Entrar</h2>
-    <form class="login" id="loginform">
+  <!-- Acceso -->
+  <section class="gate" id="gate" hidden>
+    <form class="card reveal" id="loginform">
+      <h2>Entra en tu sala de control</h2>
+      <p>Solo el dueño de Curioteca puede ver este panel.</p>
       <label>Correo<input id="email" type="email" autocomplete="username" required></label>
       <label>Contraseña<input id="pass" type="password" autocomplete="current-password" minlength="8" required></label>
-      <div class="btns"><button type="submit" id="btnin">Entrar</button><button type="button" class="sec" id="btnup">Crear cuenta</button></div>
-      <p class="small" id="loginmsg">Solo el dueño puede ver el panel.</p>
+      <div class="row"><button class="btn" type="submit">Entrar</button><button class="btn ghost" type="button" id="btnup">Crear cuenta</button></div>
+      <div class="msg" id="loginmsg"></div>
     </form>
   </section>
 
-  <div id="app" hidden>
-  <section class="card" id="now">
-    <div class="eyebrow">Vídeo de hoy</div>
-    <p class="idle" id="idle">Cargando…</p>
-  </section>
+  <!-- Panel -->
+  <main id="app" hidden style="display:flex;flex-direction:column;gap:22px">
+    <section class="card now reveal" id="now">
+      <div class="ring" id="ring">
+        <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="bar" id="ringbar" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+        <div class="mid"><div><div class="pct" id="pct">—</div><div class="sub" id="pctsub">hoy</div></div></div>
+      </div>
+      <div>
+        <div class="eyebrow" id="noweye">Vídeo de hoy</div>
+        <h2 id="nowtitle"><span class="skel">Cargando el estado del día</span></h2>
+        <div class="line" id="nowline"></div>
+      </div>
+    </section>
 
-  <section class="tiles" id="tiles"></section>
+    <section class="card flow reveal" id="flow" aria-label="Fases del vídeo"></section>
 
-  <section>
-    <h2>Estado de cada pieza</h2>
-    <div class="pipe" id="pipe"></div>
-  </section>
+    <section class="kpis" id="kpis">
+      <div class="card kpi reveal"><span class="lab">Vídeos</span><span class="num" data-k="videos">0</span><span class="hint">generados en total</span></div>
+      <div class="card kpi reveal"><span class="lab">Publicados</span><span class="num" data-k="pub">0</span><span class="hint">en alguna red</span></div>
+      <div class="card kpi reveal"><span class="lab">Racha</span><span class="num ok" data-k="streak">0</span><span class="hint">días seguidos con vídeo</span></div>
+      <div class="card kpi reveal"><span class="lab">Días fallidos</span><span class="num" data-k="miss">0</span><span class="hint">sin vídeo diario</span></div>
+    </section>
 
-  <section>
-    <h2>Vídeos</h2>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Título</th><th>Duración</th><th>Escenas</th><th>Publicado</th><th>Ver</th></tr></thead><tbody id="vids"></tbody></table></div>
-  </section>
+    <section class="grid2">
+      <div class="card panel reveal">
+        <h3>Últimos 14 días <span id="calsum"></span></h3>
+        <div class="cal" id="cal"></div>
+        <div class="cal-lab"><span id="cal0"></span><span>hoy</span></div>
+        <div class="legend"><span style="--c: var(--ok)">Vídeo</span><span style="--c: var(--bad)">Falló</span><span style="--c: var(--orange)">En curso</span><span style="--c: var(--ink-3)">Sin ejecución</span></div>
+      </div>
+      <div class="card panel reveal">
+        <h3>Piezas del sistema <span id="partsum"></span></h3>
+        <div class="parts" id="parts"></div>
+      </div>
+    </section>
 
-  <section>
-    <h2>Ejecuciones</h2>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Resultado</th><th>Min</th><th>Tema</th><th>Motivo</th></tr></thead><tbody id="runs"></tbody></table></div>
-  </section>
-  <p class="small">Se actualiza al instante cuando el programa avanza un paso. <button class="linkbtn" id="logout">Cerrar sesión</button></p>
-  </div>
+    <section class="card panel reveal">
+      <h3>Vídeos <span>Pulsa uno para verlo</span></h3>
+      <div class="vids" id="vids"></div>
+    </section>
+
+    <section class="card panel reveal">
+      <h3>Actividad <span id="runsum"></span></h3>
+      <div class="runs" id="runs"></div>
+      <button class="more" id="more" hidden>Ver más</button>
+    </section>
+
+    <div class="foot"><span id="upd"></span><button id="logout">Cerrar sesión</button></div>
+  </main>
 </div>
 
+<div class="modal" id="modal" hidden><button class="x" id="mx" aria-label="Cerrar">×</button><video id="mv" controls playsinline></video><a class="dl" id="mdl" href="#" target="_blank" rel="noopener">Descargar vídeo</a></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
 <script>
+  const SB_URL = 'https://hmnwozowfofdknzdtxsq.supabase.co', SB_KEY = 'sb_publishable_r6VlVPL5ww41GdsJvW7EBQ_vRFEG2rW';
+  const sb = supabase.createClient(SB_URL, SB_KEY);
   const $ = (id) => document.getElementById(id);
-  const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else e.setAttribute(k, v); } kids.forEach((k) => e.append(k)); return e; };
-  const fmtDate = (s) => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); };
-  const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
-  const ago = (iso) => { const s = (Date.now() - new Date(iso)) / 1000; if (s < 60) return 'hace unos segundos'; if (s < 3600) return `hace ${Math.round(s / 60)} min`; if (s < 86400) return `hace ${Math.round(s / 3600)} h`; return `hace ${Math.round(s / 86400)} días`; };
-  const cls = (e) => e === 'Funciona' ? 'ok' : e === 'Falla' ? 'bad' : e === 'Pendiente de verificar' ? 'warn' : 'off';
-  const STATE = { pendiente: 'Pendiente', en_curso: 'En curso…', hecho: 'Hecho', fallo: 'Falló', omitido: 'Omitido' };
+  const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tzDay = (d = new Date()) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+  const fmtDay = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); };
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+  const ago = (iso) => { const s = (Date.now() - new Date(iso)) / 1e3; if (s < 45) return 'ahora mismo'; if (s < 3600) return `hace ${Math.round(s / 60)} min`; if (s < 86400) return `hace ${Math.round(s / 3600)} h`; return `hace ${Math.round(s / 86400)} d`; };
+  const ICON = {
+    idea: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
+    voz: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    escenas: '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/>',
+    montaje: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M8 5v4M16 5v4M10 12.5v4l3.5-2z"/>',
+    publicar: '<path d="M12 15V3M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+  };
+  const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k] || ''}</svg>`;
+  const STATE = { pendiente: 'En espera', en_curso: 'Trabajando…', hecho: 'Hecho', fallo: 'Falló', omitido: 'Omitido' };
+  const DEFAULT_STEPS = [['idea', 'Idea y guion'], ['voz', 'Voz'], ['escenas', 'Escenas'], ['montaje', 'Montaje'], ['publicar', 'Publicación']].map(([key, label]) => ({ key, label, state: 'pendiente', detail: '' }));
+
+  let state = null, prevSteps = {}, tick = null, showAll = false;
+
+  function toast(text, bad) { const t = h('div', 'toast' + (bad ? ' bad' : ''), text); $('toasts').append(t); setTimeout(() => t.remove(), 4200); }
+
+  function countUp(el, to) {
+    const from = Number(el.dataset.v || 0); el.dataset.v = to;
+    if (reduce || from === to) { el.textContent = to; return; }
+    const t0 = performance.now(), d = 900;
+    const step = (t) => { const p = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - p, 3); el.textContent = Math.round(from + (to - from) * e); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+
+  function setRing(pct, mode) {
+    const C = 326.7; $('ringbar').style.strokeDashoffset = C * (1 - pct / 100);
+    $('ring').className = 'ring' + (mode ? ' ' + mode : '');
+  }
 
   function renderNow(st) {
-    const box = $('now'); box.replaceChildren(el('div', { class: 'eyebrow', text: 'Vídeo de hoy' }));
-    const cur = st.current;
+    clearInterval(tick);
+    const cur = st.current, today = tzDay();
+    const line = $('nowline'); line.replaceChildren();
+    $('now').classList.toggle('running', !!cur);
     if (cur) {
-      box.classList.add('now');
-      box.append(el('div', { class: 'title', text: cur.title || 'Eligiendo tema…' }));
-      const ul = el('ol', { class: 'steps' });
-      for (const s of cur.steps || []) ul.append(el('li', { class: s.state }, el('div', { class: 'l', text: s.label }), el('div', { class: 'd', text: (STATE[s.state] || s.state) + (s.detail ? ' · ' + s.detail : '') + (s.at ? ' · ' + fmtTime(s.at) : '') })));
-      box.append(ul, el('p', { class: 'small', text: `Empezó a las ${fmtTime(cur.started)} (${cur.trigger}). Tarda unos 25 minutos.` }));
+      const steps = cur.steps || [], done = steps.filter((s) => s.state === 'hecho' || s.state === 'omitido').length;
+      const act = steps.find((s) => s.state === 'en_curso');
+      setRing(Math.max(6, Math.round(done / (steps.length || 5) * 100)), '');
+      $('pct').textContent = `${done}/${steps.length || 5}`; $('pctsub').textContent = 'fases';
+      $('noweye').textContent = 'Generando ahora';
+      const t = $('nowtitle'); t.replaceChildren(h('span', 'shimmer', cur.title || 'Eligiendo el tema del día…'));
+      const now = h('span'); now.append('Fase: ', h('b', null, act ? act.label : 'Preparando'));
+      const clock = h('span', 'clock', '00:00');
+      line.append(now, clock, h('span', null, `Empezó a las ${fmtTime(cur.started)} · tarda unos 25 min`));
+      const t0 = new Date(cur.started);
+      const upd = () => { const s = Math.max(0, Math.floor((Date.now() - t0) / 1e3)); clock.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+      upd(); tick = setInterval(upd, 1000);
       return;
     }
-    box.classList.remove('now');
-    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
-    const last = (st.runs || []).find((r) => r.tipo !== 'Prueba manual' && r.fecha === today) || (st.runs || []).find((r) => r.fecha === today);
-    if (last) {
-      box.append(el('div', { class: 'title', text: last.tema || '—' }),
-        el('p', { class: 'idle' }, el('span', { class: last.resultado === 'Vídeo generado' ? 'res-ok' : 'res-bad', text: last.resultado }), ` a las ${last.hora}` + (last.motivo ? ` · ${last.motivo}` : '')));
+    const run = (st.runs || []).find((r) => r.fecha === today && r.tipo !== 'Prueba manual') || (st.runs || []).find((r) => r.fecha === today);
+    if (run && run.resultado === 'Vídeo generado') {
+      setRing(100, 'done'); $('pct').textContent = '✓'; $('pctsub').textContent = 'listo';
+      $('noweye').textContent = 'Vídeo de hoy'; $('nowtitle').textContent = run.tema || 'Vídeo generado';
+      line.append(h('span', null, `Terminado a las ${run.hora} · ${run.minutos ?? '—'} min`), ...(run.motivo ? [h('span', null, run.motivo)] : []));
+    } else if (run) {
+      setRing(100, 'fail'); $('pct').textContent = '!'; $('pctsub').textContent = 'falló';
+      $('noweye').textContent = 'Vídeo de hoy'; $('nowtitle').textContent = 'El vídeo de hoy ha fallado';
+      line.append(h('span', null, run.motivo || 'Mira el registro en GitHub'));
     } else {
-      const h = Number(new Date().toLocaleString('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }));
-      box.append(el('p', { class: 'idle', text: h < 14 ? 'Aún no ha empezado. El vídeo de hoy arranca a las 13:37.' : 'Todavía no hay vídeo de hoy. Si a las 15:00 sigue así, algo ha fallado al lanzarlo.' }));
+      const hr = Number(new Date().toLocaleString('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }));
+      setRing(0, ''); $('pct').textContent = '13:37'; $('pctsub').textContent = 'arranque';
+      $('noweye').textContent = 'Vídeo de hoy';
+      $('nowtitle').textContent = hr < 14 ? 'Aún no ha empezado' : 'Todavía no hay vídeo de hoy';
+      line.append(h('span', null, hr < 14 ? 'El vídeo del día arranca solo a las 13:37.' : 'Si a las 15:00 sigue así, algo ha fallado al lanzarlo.'));
     }
   }
 
-  function renderTiles(st) {
-    const runs = st.runs || [], vids = st.videos || [], comp = st.components || [];
-    const pub = vids.filter((v) => (v.publicado || '').startsWith('Sí')).length;
-    const days = new Set(runs.filter((r) => r.tipo === 'Diario').map((r) => r.fecha));
-    const okDays = new Set(runs.filter((r) => r.tipo === 'Diario' && r.resultado === 'Vídeo generado').map((r) => r.fecha));
-    const miss = [...days].filter((d) => !okDays.has(d)).length;
-    const t = (n, lab, sub, bad) => el('div', { class: 'card tile' + (bad ? ' bad' : '') }, el('div', { class: 'eyebrow', text: lab }), el('div', { class: 'n', text: String(n) }), el('div', { class: 's', text: sub }));
-    $('tiles').replaceChildren(
-      t(vids.length, 'Vídeos generados', 'Incluidas las pruebas'),
-      t(pub, 'Publicados', 'En alguna red'),
-      t(miss, 'Días fallidos', 'Días diarios que terminaron sin vídeo', miss > 0),
-      t(`${comp.filter((c) => c.estado === 'Funciona').length} / ${comp.length}`, 'Piezas funcionando', 'Del total del sistema'));
-  }
-
-  function renderPipe(st) {
-    $('pipe').replaceChildren(...(st.components || []).map((c) => el('div', { class: 'card ' + cls(c.estado) },
-      el('div', { class: 'row1' }, el('strong', { text: c.pieza }), el('span', { class: 'chip ' + cls(c.estado), text: c.estado })),
-      el('span', { class: 'small', text: c.grupo + ' · ' + c.detalle }))));
-  }
-
-  function renderTables(st) {
-    $('vids').replaceChildren(...(st.videos || []).map((v) => el('tr', {},
-      el('td', { text: fmtDate(v.fecha) }), el('td', { text: v.titulo || '—' }), el('td', { class: 'n', text: v.segundos ? v.segundos + ' s' : '—' }),
-      el('td', { text: v.escenas || '—' }), el('td', { text: v.publicado || 'No' }),
-      el('td', {}, v.url ? el('a', { href: v.url, target: '_blank', rel: 'noopener', text: 'Descargar' }) : '—'))));
-    $('runs').replaceChildren(...(st.runs || []).map((r) => el('tr', {},
-      el('td', { text: fmtDate(r.fecha) }), el('td', { text: r.hora }), el('td', { text: r.tipo }),
-      el('td', {}, el('span', { class: r.resultado === 'Vídeo generado' ? 'res-ok' : 'res-bad', text: r.resultado })),
-      el('td', { class: 'n', text: r.minutos ?? '—' }), el('td', { text: r.tema || '—' }), el('td', { class: 'why', text: r.motivo || '' }))));
-  }
-
-  const sb = supabase.createClient('https://hmnwozowfofdknzdtxsq.supabase.co', 'sb_publishable_r6VlVPL5ww41GdsJvW7EBQ_vRFEG2rW');
-  let channel = null, timer = null, last = null;
-
-  async function signVideos(st) {
-    for (const v of st.videos || []) {
-      if (v.url && v.url.startsWith('videos/')) {
-        const { data } = await sb.storage.from('videos').createSignedUrl(v.url.slice(7), 3600);
-        v.url = data ? data.signedUrl : '';
+  function renderFlow(st) {
+    const steps = st.current ? st.current.steps : (st.lastSteps || DEFAULT_STEPS);
+    const box = $('flow'); box.replaceChildren();
+    for (const s of steps) {
+      const ph = h('div', 'ph ' + (st.current ? s.state : 'pendiente'));
+      const dot = h('div', 'dot'); dot.innerHTML = svg(s.key);
+      const txt = h('div', 'txt'); txt.append(h('div', 'name', s.label), h('div', 'det', st.current ? (STATE[s.state] || s.state) + (s.detail ? ' · ' + s.detail : '') : ''));
+      ph.append(dot, txt); box.append(ph);
+      const was = prevSteps[s.key];
+      if (st.current && was && was !== s.state) {
+        if (s.state === 'hecho') toast(`✓ ${s.label} terminada${s.detail ? ' · ' + s.detail : ''}`);
+        if (s.state === 'fallo') toast(`✕ ${s.label} ha fallado`, true);
       }
+      prevSteps[s.key] = st.current ? s.state : null;
     }
+  }
+
+  function renderKpis(st) {
+    const runs = st.runs || [], vids = st.videos || [];
+    const daily = runs.filter((r) => r.tipo === 'Diario');
+    const okDays = new Set(daily.filter((r) => r.resultado === 'Vídeo generado').map((r) => r.fecha));
+    const allDays = new Set(daily.map((r) => r.fecha));
+    let streak = 0; for (let i = 0; i < 365; i++) { const d = tzDay(new Date(Date.now() - i * 864e5)); if (okDays.has(d)) streak++; else if (i > 0 || st.current) break; }
+    const k = { videos: vids.length, pub: vids.filter((v) => (v.publicado || '').startsWith('Sí')).length, streak, miss: [...allDays].filter((d) => !okDays.has(d)).length };
+    document.querySelectorAll('[data-k]').forEach((el) => { countUp(el, k[el.dataset.k]); if (el.dataset.k === 'miss') el.classList.toggle('bad', k.miss > 0); });
+  }
+
+  function renderCal(st) {
+    const runs = st.runs || [], cal = $('cal'); cal.replaceChildren();
+    let ok = 0;
+    for (let i = 13; i >= 0; i--) {
+      const d = tzDay(new Date(Date.now() - i * 864e5)), rs = runs.filter((r) => r.fecha === d);
+      const anyOk = rs.some((r) => r.resultado === 'Vídeo generado'), running = i === 0 && !!st.current;
+      const c = h('div', 'day' + (running ? ' run' : anyOk ? ' ok' : rs.length ? ' bad' : '') + (i === 0 ? ' today' : ''));
+      c.title = `${fmtDay(d)} · ${running ? 'en curso' : anyOk ? 'vídeo generado' : rs.length ? 'falló' : 'sin ejecución'}`;
+      if (anyOk) ok++;
+      cal.append(c);
+      if (i === 13) $('cal0').textContent = fmtDay(d);
+    }
+    $('calsum').textContent = `${ok} de 14 con vídeo`;
+  }
+
+  function renderParts(st) {
+    const list = st.components || [], box = $('parts'); box.replaceChildren();
+    for (const c of list) {
+      const cls = c.estado === 'Funciona' ? 'ok' : c.estado === 'Falla' ? 'bad' : c.estado === 'Pendiente de verificar' ? 'warn' : '';
+      const row = h('div', 'part ' + cls), t = h('div', 't');
+      t.append(h('b', null, c.pieza), h('small', null, c.detalle));
+      row.append(h('span', 'led'), t, h('span', 'tag', c.estado)); box.append(row);
+    }
+    $('partsum').textContent = `${list.filter((c) => c.estado === 'Funciona').length} de ${list.length} listas`;
+  }
+
+  async function signed(path) {
+    if (!path || !path.startsWith('videos/')) return '';
+    const { data } = await sb.storage.from('videos').createSignedUrl(path.slice(7), 3600);
+    return data ? data.signedUrl : '';
+  }
+
+  async function renderVids(st) {
+    const box = $('vids'); box.replaceChildren();
+    for (const v of st.videos || []) {
+      const b = h('button', 'vid' + (v.url ? '' : ' nofile')); b.type = 'button';
+      const th = h('div', 'th');
+      if (v.cover) signed(v.cover).then((u) => { if (u) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = u; th.prepend(i); } });
+      const play = h('span', 'play'); play.innerHTML = v.url ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b93a1" stroke-width="2"><path d="M4 4l16 16M10 6h8a2 2 0 0 1 2 2v8M16 18H6a2 2 0 0 1-2-2V8"/></svg>';
+      th.append(play);
+      if (v.segundos) th.append(h('span', 'dur', `${Math.floor(v.segundos / 60)}:${String(v.segundos % 60).padStart(2, '0')}`));
+      const pubd = (v.publicado || '').startsWith('Sí');
+      th.append(h('span', 'pub' + (pubd ? ' yes' : ''), pubd ? 'Publicado' : 'Sin publicar'));
+      const meta = h('div', 'meta'); meta.append(h('b', null, v.titulo || '—'), h('small', null, `${fmtDay(v.fecha)} · ${v.escenas || ''}`));
+      b.append(th, meta);
+      if (v.url) b.addEventListener('click', async () => { const u = await signed(v.url); if (!u) return toast('No se pudo abrir el vídeo', true); $('mv').src = u; $('mdl').href = u; $('modal').hidden = false; $('mv').play().catch(() => {}); });
+      else b.title = 'Este vídeo es de antes del panel: descárgalo desde GitHub';
+      box.append(b);
+    }
+  }
+
+  function renderRuns(st) {
+    const all = st.runs || [], list = showAll ? all : all.slice(0, 6), box = $('runs'); box.replaceChildren();
+    for (const r of list) {
+      const ok = r.resultado === 'Vídeo generado', row = h('div', 'run ' + (ok ? 'ok' : 'bad'));
+      const when = h('div', 'when'); when.append(fmtDay(r.fecha), h('br'), r.hora);
+      const what = h('div', 'what'); what.append(h('b', null, r.tema || r.resultado), h('p', null, [r.tipo, ok ? null : r.resultado, r.motivo].filter(Boolean).join(' · ')));
+      row.append(when, h('span', 'mk'), what, h('span', 'mins', r.minutos != null ? `${r.minutos} min` : ''));
+      box.append(row);
+    }
+    $('more').hidden = all.length <= 6; $('more').textContent = showAll ? 'Ver menos' : `Ver las ${all.length}`;
+    $('runsum').textContent = `${all.filter((r) => r.resultado === 'Vídeo generado').length} vídeos en ${all.length} ejecuciones`;
   }
 
   async function render(st) {
-    last = st; await signVideos(st);
-    renderNow(st); renderTiles(st); renderPipe(st); renderTables(st);
-    $('upd').textContent = 'Actualizado ' + ago(st.updated || new Date().toISOString());
-    $('upd').classList.remove('err'); $('dot').className = 'dot on';
+    state = st;
+    renderNow(st); renderFlow(st); renderKpis(st); renderCal(st); renderParts(st); renderRuns(st); renderVids(st);
+    $('upd').textContent = 'Datos actualizados ' + ago(st.updated || new Date().toISOString());
   }
 
   async function load() {
     const { data, error } = await sb.from('panel').select('data').eq('id', 1).maybeSingle();
-    if (error || !data) { $('upd').textContent = error ? 'No se pudo leer el estado: ' + error.message : 'Esta cuenta no tiene acceso al panel.'; $('upd').classList.add('err'); $('dot').className = 'dot stale'; return; }
-    await render(data.data);
+    if (error || !data) { $('livetxt').textContent = error ? 'Error al leer' : 'Sin acceso con esta cuenta'; $('live').className = 'live'; return; }
+    $('livetxt').textContent = 'En directo'; $('live').className = 'live on';
+    render(data.data);
   }
 
   function startApp() {
-    $('loginbox').hidden = true; $('app').hidden = false;
+    $('gate').hidden = true; $('app').hidden = false;
     load();
-    channel = sb.channel('panel').on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (p) => p.new && p.new.data && render(p.new.data)).subscribe();
-    timer = setInterval(() => { load(); }, 60000);
-    setInterval(() => { if (last) $('upd').textContent = 'Actualizado ' + ago(last.updated); }, 20000);
+    sb.channel('panel').on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (p) => { if (p.new && p.new.data) render(p.new.data); })
+      .subscribe((s) => { if (s === 'SUBSCRIBED') { $('livetxt').textContent = 'En directo'; $('live').className = 'live on'; } });
+    setInterval(load, 60000);
+    setInterval(() => { if (state) $('upd').textContent = 'Datos actualizados ' + ago(state.updated); }, 20000);
   }
+  function showGate() { $('app').hidden = true; $('gate').hidden = false; $('livetxt').textContent = 'Sin sesión'; $('live').className = 'live'; }
 
-  function showLogin(msg) {
-    $('app').hidden = true; $('loginbox').hidden = false; $('upd').textContent = 'Sin sesión'; $('dot').className = 'dot stale';
-    if (msg) $('loginmsg').textContent = msg;
-  }
-
+  const msg = (t, err) => { $('loginmsg').textContent = t; $('loginmsg').className = 'msg' + (err ? ' err' : ''); };
   $('loginform').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    e.preventDefault(); msg('Entrando…');
     const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
-    if (error) $('loginmsg').textContent = error.message === 'Email not confirmed' ? 'Confirma tu correo primero: revisa la bandeja de entrada.' : 'No se pudo entrar: correo o contraseña incorrectos.';
+    if (error) msg(error.message === 'Email not confirmed' ? 'Confirma tu correo primero: revisa tu bandeja de entrada.' : 'Correo o contraseña incorrectos.', true);
   });
   $('btnup').addEventListener('click', async () => {
     const email = $('email').value.trim(), password = $('pass').value;
-    if (!email || password.length < 8) { $('loginmsg').textContent = 'Escribe tu correo y una contraseña de al menos 8 caracteres.'; return; }
+    if (!email || password.length < 8) return msg('Escribe tu correo y una contraseña de al menos 8 caracteres.', true);
     const { error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.href.split('#')[0] } });
-    $('loginmsg').textContent = error ? 'No se pudo crear la cuenta: ' + error.message : 'Cuenta creada. Te he mandado un correo: pulsa el enlace para confirmarlo y vuelve aquí a entrar.';
+    msg(error ? 'No se pudo crear la cuenta: ' + error.message : 'Cuenta creada. Confirma el correo que te he enviado y vuelve aquí a entrar.', !!error);
   });
   $('logout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+  $('more').addEventListener('click', () => { showAll = !showAll; renderRuns(state); });
+  const closeModal = () => { $('mv').pause(); $('mv').removeAttribute('src'); $('modal').hidden = true; };
+  $('mx').addEventListener('click', closeModal);
+  $('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('modal').hidden) closeModal(); });
 
-  sb.auth.getSession().then(({ data }) => data.session ? startApp() : showLogin());
-  sb.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_IN' && $('app').hidden) startApp(); if (ev === 'SIGNED_OUT') showLogin(); });
+  sb.auth.getSession().then(({ data }) => data.session ? startApp() : showGate());
+  sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN' && $('app').hidden) startApp(); if (ev === 'SIGNED_OUT') showGate(); });
 </script>
 </body>
 </html>
