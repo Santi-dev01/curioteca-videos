@@ -84,7 +84,10 @@
   .ph.en_curso::after { background: repeating-linear-gradient(90deg, var(--orange) 0 8px, transparent 8px 16px); background-size: 32px 2px; }
   .ph.fallo .dot { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
 
-  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+  .kpi .meter { height: 6px; border-radius: 6px; background: var(--tint); overflow: hidden; margin-top: 4px; }
+  .kpi .meter i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 6px; transition: width 1s cubic-bezier(.2, .8, .2, 1), background .3s; }
+  .kpi .meter i.or { background: var(--orange); } .kpi .meter i.bad { background: var(--bad); }
   .kpi { padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .kpi .lab { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--dim); }
   .kpi .num { font: 800 34px/1.05 var(--display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
@@ -256,6 +259,7 @@
       <div class="card kpi reveal"><span class="lab">Publicados</span><span class="num ok" data-k="pub">0</span><span class="hint">en alguna red</span></div>
       <div class="card kpi reveal"><span class="lab">Visitas</span><span class="num" data-k="views">0</span><span class="hint" id="viewshint">al conectar las redes</span></div>
       <div class="card kpi reveal"><span class="lab">Días fallidos</span><span class="num" data-k="miss">0</span><span class="hint">sin vídeo diario</span></div>
+      <div class="card kpi reveal" title="Minutos de GitHub Actions gastados este mes (aproximado). El plan gratuito da 2.000 al mes y se reinicia el día 1."><span class="lab">Minutos GitHub</span><span class="num" id="mins">—</span><div class="meter"><i id="minsbar"></i></div><span class="hint" id="minshint">de 2.000 gratis este mes</span></div>
     </section>
 
     <section class="grid2">
@@ -559,6 +563,21 @@
     renderAll();
   }
 
+  async function loadMinutos() {
+    try {
+      const { data, error } = await sb.functions.invoke('control', { body: { action: 'minutos' } });
+      if (error || !data) throw error;
+      const used = data.usados, lim = data.limite || 2000, pct = Math.min(100, used / lim * 100);
+      countUp($('mins'), used);
+      $('minsbar').style.width = pct + '%';
+      $('minsbar').className = pct >= 90 ? 'bad' : pct >= 70 ? 'or' : '';
+      $('mins').classList.toggle('bad', pct >= 90);
+      const day = new Date().getDate(), days = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const proj = day > 2 ? Math.round(used / day * days) : null;
+      $('minshint').textContent = `de ${lim.toLocaleString('es-ES')} gratis` + (proj ? ` · previsión ~${proj.toLocaleString('es-ES')}` : ' este mes');
+    } catch { $('minshint').textContent = 'no se pudo consultar GitHub'; }
+  }
+
   async function callControl(body, btn, okText) {
     if (btn) btn.disabled = true;
     try {
@@ -571,7 +590,7 @@
 
   function startApp() {
     $('gate').hidden = true; $('app').hidden = false; $('btngen').hidden = false;
-    loadAll();
+    loadAll(); loadMinutos();
     sb.channel('todo')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (x) => { if (x.new && x.new.data) { S.panel = x.new.data; renderAll(); } })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'videos' }, () => sb.from('videos').select('*').order('creado_at', { ascending: false }).limit(200).then(({ data }) => { S.videos = data || []; renderAll(); }))
@@ -579,6 +598,7 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes' }, (x) => { if (x.new) { S.ajustes = x.new; renderAjustes(); renderNow(); } })
       .subscribe((s) => { if (s === 'SUBSCRIBED') { $('livetxt').textContent = 'En directo'; $('live').className = 'live on'; } });
     setInterval(loadAll, 120000);
+    setInterval(loadMinutos, 600000);
     setInterval(() => { if (S.panel) $('upd').textContent = 'Datos actualizados ' + ago(S.panel.updated); }, 20000);
   }
   function showGate() { $('app').hidden = true; $('gate').hidden = false; $('btngen').hidden = true; $('livetxt').textContent = 'Sin sesión'; $('live').className = 'live'; }
