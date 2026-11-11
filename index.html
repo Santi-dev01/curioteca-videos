@@ -364,7 +364,7 @@
   };
   const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k] || ''}</svg>`;
   const STATE = { pendiente: 'En espera', en_curso: 'Trabajando…', hecho: 'Hecho', fallo: 'Falló', omitido: 'Omitido' };
-  const VSTATE = { listo: ['Listo', ''], programado: ['Programado', 'or'], publicando: ['Publicando…', 'wait'], publicado: ['Publicado', 'ok'], error: ['Error', 'bad'], descartado: ['Descartado', ''] };
+  const VSTATE = { listo: ['Guardado', ''], programado: ['Programado', 'or'], publicando: ['Publicando…', 'wait'], publicado: ['Publicado', 'ok'], error: ['Error', 'bad'], descartado: ['Descartado', ''] };
   const DEFAULT_STEPS = [['idea', 'Idea y guion'], ['voz', 'Voz'], ['escenas', 'Escenas'], ['montaje', 'Montaje'], ['publicar', 'Programación']].map(([key, label]) => ({ key, label, state: 'pendiente', detail: '' }));
 
   const S = { panel: null, videos: [], temas: [], ajustes: null, series: [] };
@@ -461,10 +461,10 @@
       const row = h('div', 'qi'), th = h('div', 'th');
       if (v.cover_path) signed(v.cover_path).then((u) => { if (u) { const i = new Image(); i.alt = ''; i.src = u; th.append(i); } });
       const t = h('div', 't'), [lab, cls] = VSTATE[v.estado] || [v.estado, ''];
-      const sub = h('small'); sub.append(h('span', 'pill ' + cls, lab), ' ', v.publicar_el ? fmtWhen(v.publicar_el) : 'sin fecha');
+      const sub = h('small'); sub.append(h('span', 'pill ' + cls, lab), ' ', v.estado === 'listo' ? 'sin publicar · ponle fecha o pulsa «Publicar ya»' : (v.publicar_el ? fmtWhen(v.publicar_el) : 'sin fecha'));
       t.append(h('b', null, v.titulo), sub);
       const ctl = h('div', 'ctl');
-      const dt = h('input'); dt.type = 'datetime-local'; dt.value = v.publicar_el ? toLocalInput(v.publicar_el) : ''; dt.setAttribute('aria-label', 'Fecha de publicación');
+      const dt = h('input'); dt.type = 'datetime-local'; dt.value = v.publicar_el && v.estado !== 'listo' ? toLocalInput(v.publicar_el) : ''; dt.setAttribute('aria-label', 'Fecha de publicación');
       dt.addEventListener('change', async () => {
         if (!dt.value) return;
         const { error } = await sb.from('videos').update({ publicar_el: fromLocalInput(dt.value), estado: 'programado' }).eq('id', v.id);
@@ -472,11 +472,13 @@
       });
       const now = h('button', 'btn sm', 'Publicar ya'); now.type = 'button'; now.disabled = v.estado === 'publicando';
       now.addEventListener('click', () => callControl({ action: 'publicar', video_id: v.id }, now, 'Publicación lanzada'));
-      const drop = h('button', 'btn danger sm', 'Descartar'); drop.type = 'button';
+      // Pausar: deja el vídeo guardado (no se publica solo) hasta que le pongas fecha o pulses «Publicar ya»
+      const drop = h('button', 'btn ghost sm', 'Pausar'); drop.type = 'button';
+      drop.hidden = v.estado !== 'programado';
+      drop.title = 'Lo deja guardado sin publicar. Para publicarlo, ponle fecha o pulsa «Publicar ya».';
       drop.addEventListener('click', async () => {
-        if (drop.dataset.sure !== '1') { drop.dataset.sure = '1'; drop.textContent = '¿Seguro?'; setTimeout(() => { drop.dataset.sure = ''; drop.textContent = 'Descartar'; }, 3000); return; }
-        const { error } = await sb.from('videos').update({ estado: 'descartado' }).eq('id', v.id);
-        error ? toast('No se pudo descartar', true) : toast('Vídeo descartado: no se publicará');
+        const { error } = await sb.from('videos').update({ estado: 'listo' }).eq('id', v.id);
+        error ? toast('No se pudo pausar', true) : toast('Vídeo guardado: no se publicará hasta que tú quieras');
       });
       ctl.append(dt, now, drop); row.append(th, t, ctl); box.append(row);
     }
