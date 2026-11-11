@@ -245,6 +245,7 @@
       <label class="field">Correo<input id="email" type="email" autocomplete="username" required></label>
       <label class="field">Contraseña<input id="pass" type="password" autocomplete="current-password" minlength="8" required></label>
       <div class="row"><button class="btn" type="submit">Entrar</button><button class="btn ghost" type="button" id="btnup">Crear cuenta</button></div>
+      <button class="btn ghost sm" type="button" id="btnforgot" style="align-self:flex-start">He olvidado la contraseña</button>
       <div class="msg" id="loginmsg"></div>
     </form>
   </section>
@@ -695,7 +696,26 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('modal').hidden) closeVideo(); $('genmodal').hidden = true; } });
 
   sb.auth.getSession().then(({ data }) => data.session ? startApp() : showGate());
-  sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN' && $('app').hidden) startApp(); if (ev === 'SIGNED_OUT') showGate(); });
+  $('btnforgot').addEventListener('click', async () => {
+    const email = $('email').value.trim();
+    if (!email) return msg($('loginmsg'), 'Escribe tu correo arriba y vuelve a pulsar.', true);
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split('#')[0] });
+    msg($('loginmsg'), error ? 'No se pudo enviar: ' + error.message : 'Te he enviado un correo. Ábrelo, pulsa el enlace y elige la contraseña nueva.', !!error);
+  });
+  async function nuevaClave() {
+    let pass = '';
+    while (pass.length < 8) {
+      pass = window.prompt('Escribe tu contraseña nueva (mínimo 8 caracteres):') || '';
+      if (!pass) return;
+    }
+    const { error } = await sb.auth.updateUser({ password: pass });
+    error ? toast('No se pudo cambiar: ' + error.message, true) : toast('Contraseña cambiada');
+  }
+  sb.auth.onAuthStateChange((ev) => {
+    if (ev === 'PASSWORD_RECOVERY') { setTimeout(nuevaClave, 300); }
+    if (ev === 'SIGNED_IN' && $('app').hidden) startApp();
+    if (ev === 'SIGNED_OUT') showGate();
+  });
 </script>
 </body>
 </html>
