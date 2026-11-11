@@ -48,6 +48,14 @@
   .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
   .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--line-2); box-shadow: none; }
   .btn.sm { padding: 6px 11px; font-size: 13px; border-radius: 10px; }
+  .expl { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .expl { grid-template-columns: 1fr; } }
+  .expl h4 { margin: 0 0 8px; font: 700 14px var(--body); color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+  .lec, .prop { border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; background: var(--tint); }
+  .lec .q, .prop .q { font-size: 12px; color: var(--dim); margin-top: 4px; overflow-wrap: anywhere; }
+  .lec .who { display: inline-block; font-size: 11px; font-weight: 700; color: var(--orange); text-transform: uppercase; margin-right: 6px; }
+  .prop b { display: block; margin-bottom: 4px; } .prop .row { margin-top: 8px; }
+  .prop.interesa { border-color: var(--orange); }
   .btn.danger { background: var(--card); color: var(--bad); border-color: var(--line-2); box-shadow: none; }
 
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
@@ -275,6 +283,13 @@
       <h3>Equipo de agentes <span id="agsum"></span></h3>
       <div class="ags" id="ags"></div>
     </section>
+    <section class="card panel reveal" id="explbox">
+      <h3>Explorador <span id="explsum">Ve Shorts todo el día y enseña al resto de agentes</span></h3>
+      <div class="expl">
+        <div><h4>Lo que ha aprendido (se aplica solo)</h4><div id="lecs"></div></div>
+        <div><h4>Propuestas para revisar</h4><div id="props"></div></div>
+      </div>
+    </section>
 
     <section class="kpis">
       <div class="card kpi reveal"><span class="lab">Vídeos</span><span class="num" data-k="videos">0</span><span class="hint">generados</span></div>
@@ -382,9 +397,49 @@
   const VSTATE = { listo: ['Guardado', ''], programado: ['Programado', 'or'], publicando: ['Publicando…', 'wait'], publicado: ['Publicado', 'ok'], error: ['Error', 'bad'], descartado: ['Descartado', ''] };
   const DEFAULT_STEPS = [['idea', 'Idea y guion'], ['voz', 'Voz'], ['escenas', 'Escenas'], ['montaje', 'Montaje'], ['publicar', 'Programación']].map(([key, label]) => ({ key, label, state: 'pendiente', detail: '' }));
 
-  const S = { panel: null, videos: [], temas: [], ajustes: null, series: [] };
+  const S = { panel: null, videos: [], temas: [], ajustes: null, series: [], lecs: [], props: [], vistos: 0, ultimo: null };
   let prevSteps = {}, tick = null, showAll = false, signCache = {};
 
+  const PARA = { guionista: 'Guion', titular: 'Título', director: 'Dirección', escenografo: 'Fondos', community: 'Redes', todos: 'Todos' };
+  function renderExpl() {
+    $('explsum').textContent = `${S.vistos} Shorts vistos (24 h)` + (S.ultimo ? ` · último: ${S.ultimo.titulo || ''} (${ago(S.ultimo.creado_at)})` : '') ;
+    const L = $('lecs'); L.replaceChildren();
+    if (!S.lecs.length) L.append(h('p', 'q', 'Aún nada: empieza a aprender en cuanto tenga sus claves (mira «Qué falta»).'));
+    S.lecs.forEach((l) => {
+      const d = h('div', 'lec'); const w = h('span', 'who', PARA[l.para] || l.para); d.append(w, document.createTextNode(l.texto));
+      if (l.fuente) d.append(h('div', 'q', 'De: ' + l.fuente));
+      const b = h('button', 'btn ghost sm', 'Apagar'); b.style.marginTop = '8px';
+      b.onclick = async () => { const { error } = await sb.from('aprendizajes').update({ activo: false }).eq('id', l.id); error ? toast('No se pudo apagar', true) : toast('Lección apagada'); loadExpl(); };
+      d.append(b); L.append(d);
+    });
+    const P = $('props'); P.replaceChildren();
+    const vivas = S.props.filter((p) => p.estado === 'pendiente' || p.estado === 'interesa');
+    if (!vivas.length) P.append(h('p', 'q', 'Ninguna pendiente. Aquí verás ideas que cuestan dinero o cambian el programa: nada de esto se aplica sin ti.'));
+    vivas.forEach((p) => {
+      const d = h('div', 'prop' + (p.estado === 'interesa' ? ' interesa' : ''));
+      d.append(h('b', null, p.titulo), h('div', null, p.descripcion || ''));
+      if (p.como) d.append(h('div', 'q', 'Cómo: ' + p.como));
+      d.append(h('div', 'q', `Coste: ${p.coste || '—'} · Riesgo: ${p.riesgo || '—'}`));
+      if (p.fuente) d.append(h('div', 'q', 'Visto en: ' + p.fuente));
+      const r = h('div', 'row');
+      const si = h('button', 'btn sm', p.estado === 'interesa' ? 'Me interesa ✓' : 'Me interesa');
+      const no = h('button', 'btn danger sm', 'Descartar');
+      si.onclick = async () => { await sb.from('propuestas').update({ estado: 'interesa' }).eq('id', p.id); toast('Marcada. Coméntalo con Claude para hacerla'); loadExpl(); };
+      no.onclick = async () => { await sb.from('propuestas').update({ estado: 'descartada' }).eq('id', p.id); toast('Descartada'); loadExpl(); };
+      r.append(si, no); d.append(r); P.append(d);
+    });
+  }
+  async function loadExpl() {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const [l, p, v, u] = await Promise.all([
+      sb.from('aprendizajes').select('*').eq('activo', true).order('creado_at', { ascending: false }).limit(30),
+      sb.from('propuestas').select('*').order('creado_at', { ascending: false }).limit(30),
+      sb.from('tendencias').select('video_id', { count: 'exact', head: true }).eq('analizado', true).gte('creado_at', new Date(Date.now() - 864e5).toISOString()),
+      sb.from('tendencias').select('titulo, creado_at').eq('analizado', true).order('creado_at', { ascending: false }).limit(1),
+    ]);
+    S.lecs = l.data || []; S.props = p.data || []; S.vistos = v.count || 0; S.ultimo = (u.data || [])[0] || null;
+    renderExpl();
+  }
   function toast(text, bad) { const t = h('div', 'toast' + (bad ? ' bad' : ''), text); $('toasts').append(t); setTimeout(() => t.remove(), 4200); }
   function countUp(el, to) {
     const from = Number(el.dataset.v || 0); el.dataset.v = to;
@@ -681,12 +736,14 @@
 
   function startApp() {
     $('gate').hidden = true; $('app').hidden = false; $('btngen').hidden = false;
-    loadAll(); loadMinutos();
+    loadAll(); loadMinutos(); loadExpl(); setInterval(loadExpl, 300000);
     sb.channel('todo')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (x) => { if (x.new && x.new.data) { S.panel = x.new.data; renderAll(); } })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'videos' }, () => sb.from('videos').select('*').order('creado_at', { ascending: false }).limit(200).then(({ data }) => { S.videos = data || []; renderAll(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'temas' }, () => sb.from('temas').select('*').order('creado_at').then(({ data }) => { S.temas = data || []; renderTemas(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'series' }, () => sb.from('series').select('id, tema, titulo, partes, siguiente, estado, creado_at').order('creado_at').then(({ data }) => { S.series = data || []; renderSeries(); }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aprendizajes' }, () => loadExpl())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'propuestas' }, () => loadExpl())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes' }, (x) => { if (x.new) { S.ajustes = x.new; renderAjustes(); renderNow(); } })
       .subscribe((s) => { if (s === 'SUBSCRIBED') { $('livetxt').textContent = 'En directo'; $('live').className = 'live on'; } });
     setInterval(loadAll, 120000);
