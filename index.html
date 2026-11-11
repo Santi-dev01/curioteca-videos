@@ -48,6 +48,15 @@
   .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
   .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--line-2); box-shadow: none; }
   .btn.sm { padding: 6px 11px; font-size: 13px; border-radius: 10px; }
+  .ofi { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .sala { border: 1px solid var(--line-2); border-radius: 14px; padding: 10px 12px; background: var(--tint); position: relative; min-height: 92px; transition: border-color .3s, box-shadow .3s; }
+  .sala .ic { font-size: 22px; } .sala b { display: block; font-size: 13px; margin-top: 4px; }
+  .sala p { margin: 4px 0 0; font-size: 12px; color: var(--dim); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .sala .est { position: absolute; top: 10px; right: 10px; font-size: 11px; font-weight: 700; color: var(--dim); }
+  .sala.on { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft); }
+  .sala.on .est { color: var(--orange); } .sala.on .ic { animation: tecleo 1s ease-in-out infinite; }
+  @keyframes tecleo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce) { .sala.on .ic { animation: none; } }
   .expl { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   @media (max-width: 760px) { .expl { grid-template-columns: 1fr; } }
   .expl h4 { margin: 0 0 8px; font: 700 14px var(--body); color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
@@ -281,6 +290,7 @@
 
     <section class="card panel reveal" id="agentesbox">
       <h3>Equipo de agentes <span id="agsum"></span></h3>
+      <div class="ofi" id="ofi"></div>
       <div class="ags" id="ags"></div>
     </section>
     <section class="card panel reveal" id="explbox">
@@ -438,7 +448,7 @@
       sb.from('tendencias').select('titulo, creado_at').eq('analizado', true).order('creado_at', { ascending: false }).limit(1),
     ]);
     S.lecs = l.data || []; S.props = p.data || []; S.vistos = v.count || 0; S.ultimo = (u.data || [])[0] || null;
-    renderExpl();
+    renderExpl(); renderAgentes();
   }
   function toast(text, bad) { const t = h('div', 'toast' + (bad ? ' bad' : ''), text); $('toasts').append(t); setTimeout(() => t.remove(), 4200); }
   function countUp(el, to) {
@@ -498,10 +508,30 @@
     if (next && !(todayVid && todayVid.id === next.id)) line.append(h('span', null, `Próxima publicación: ${fmtWhen(next.publicar_el)}`));
   }
 
-  const AG_IC = { 'Investigador': '🔎', 'Guionista': '✍️', 'Crítico': '🎯', 'Verificador': '✅', 'Director': '🎬', 'Revisor de imágenes': '🖼️', 'Community manager': '📣', 'Kaggle': '🎞️' };
+  const AG_IC = { 'Investigador': '🔎', 'Guionista': '✍️', 'Crítico': '🎯', 'Verificador': '✅', 'Director': '🎬', 'Revisor de imágenes': '🖼️', 'Community manager': '📣', 'Kaggle': '🎞️', 'Explorador': '🧭', 'Titular': '📰', 'Director de animación': '🎬', 'Escenógrafo': '🎨', 'Diseñador de sonido': '🔊', 'Revisor de fotogramas': '🖼️', 'Revisor de sonido': '🎧', 'Revisor de portada': '🏷️' };
+  const OFICINA = [['Explorador', '🧭'], ['Investigador', '🔎'], ['Guionista', '✍️'], ['Crítico', '🎯'], ['Verificador', '✅'], ['Titular', '📰'],
+    ['Director de animación', '🎬'], ['Escenógrafo', '🎨'], ['Diseñador de sonido', '🔊'], ['Revisor de fotogramas', '🖼️'], ['Revisor de sonido', '🎧'],
+    ['Revisor de portada', '🏷️'], ['Community manager', '📣']];
+  function renderOficina(list, trabajando) {
+    const box = $('ofi'); if (!box) return; box.replaceChildren();
+    const ultimo = {}; list.forEach((a) => { ultimo[a.quien] = a; });
+    const activo = trabajando && list.length ? list[list.length - 1].quien : null;
+    OFICINA.forEach(([nombre, ic]) => {
+      let a = ultimo[nombre], on = nombre === activo, est = a ? (on ? 'trabajando' : 'hecho') : 'descansando';
+      if (nombre === 'Explorador') {
+        on = !!(S.ultimo && Date.now() - new Date(S.ultimo.creado_at) < 864e5);
+        a = { texto: S.ultimo ? `${S.vistos} Shorts vistos (24 h). Último: ${S.ultimo.titulo}` : 'Esperando sus claves para empezar a ver Shorts', at: S.ultimo && S.ultimo.creado_at };
+        est = on ? 'viendo Shorts' : 'en pausa';
+      }
+      const d = h('div', 'sala' + (on ? ' on' : ''));
+      d.append(h('span', 'ic', ic), h('span', 'est', est), h('b', null, nombre), h('p', null, a ? a.texto : 'Sin trabajo ahora'));
+      box.append(d);
+    });
+  }
   function renderAgentes() {
     const st = S.panel || {}, cur = st.current, last = (st.runs || []).find((r) => (r.agentes || []).length);
     const list = (cur && cur.agentes && cur.agentes.length ? cur.agentes : (last ? last.agentes : [])) || [];
+    renderOficina(list, !!(cur && cur.agentes && cur.agentes.length));
     const box = $('ags'); box.replaceChildren();
     $('agsum').textContent = cur && cur.agentes ? 'trabajando ahora' : (last ? 'último vídeo: ' + (last.tema || '') : '');
     if (!list.length) { box.append(h('div', 'empty', 'Cuando se haga un vídeo, aquí verás lo que hace cada agente.')); return; }
