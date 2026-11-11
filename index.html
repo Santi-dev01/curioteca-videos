@@ -126,6 +126,13 @@
   .addtema textarea { grid-column: 1 / -1; resize: vertical; min-height: 40px; }
   .temas { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
   .tm { display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--tint); }
+  .addtema .opt { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); cursor: pointer; }
+  .addtema .opt input { accent-color: var(--orange); width: 16px; height: 16px; }
+  .series { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .sr { display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 12px; border: 1px solid var(--orange-line); border-radius: 12px; background: var(--orange-soft); }
+  .sr .t { flex: 1; min-width: 0; } .sr .t b { font-weight: 600; font-size: 14px; display: block; overflow-wrap: anywhere; } .sr .t small { color: var(--dim); font-size: 12px; }
+  .sr .dots { display: flex; gap: 4px; flex: none; } .sr .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); } .sr .dots i.on { background: var(--orange); }
+  .tm .pill { flex: none; }
   .tm .n { font: 600 12px var(--mono); color: var(--orange); width: 18px; flex: none; }
   .tm .t { flex: 1; min-width: 0; } .tm .t b { font-weight: 600; font-size: 14px; display: block; overflow-wrap: anywhere; } .tm .t small { color: var(--dim); font-size: 12px; }
   .x { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--card); color: var(--dim); display: grid; place-items: center; flex: none; }
@@ -293,9 +300,11 @@
             <input class="field" id="ntema" placeholder="Ej.: el pueblo español sin coches" maxlength="300" required style="background:var(--tint);border:1px solid var(--line-2);border-radius:11px;padding:9px 11px">
             <button class="btn sm" type="submit">Añadir</button>
             <textarea id="nnotas" placeholder="Notas opcionales: enfoque, dato que quieres que salga…" maxlength="1000" style="background:var(--tint);border:1px solid var(--line-2);border-radius:11px;padding:9px 11px"></textarea>
+            <label class="opt"><input type="checkbox" id="nserie"> Serie de 3 partes (una parte cada día, con suspense al final)</label>
           </form>
+          <div class="series" id="series"></div>
           <div class="temas" id="temas"></div>
-          <p class="note">Si hay temas en cola, el próximo vídeo usa el primero. Si no, la IA elige uno.</p>
+          <p class="note">Si hay una serie a medias, el próximo vídeo es su siguiente parte. Si no, se usa el primer tema de la cola; y si la cola está vacía, la IA elige (a veces empieza una serie).</p>
         </div>
         <div class="card panel reveal">
           <h3>Últimos 14 días <span id="calsum"></span></h3>
@@ -358,7 +367,7 @@
   const VSTATE = { listo: ['Listo', ''], programado: ['Programado', 'or'], publicando: ['Publicando…', 'wait'], publicado: ['Publicado', 'ok'], error: ['Error', 'bad'], descartado: ['Descartado', ''] };
   const DEFAULT_STEPS = [['idea', 'Idea y guion'], ['voz', 'Voz'], ['escenas', 'Escenas'], ['montaje', 'Montaje'], ['publicar', 'Programación']].map(([key, label]) => ({ key, label, state: 'pendiente', detail: '' }));
 
-  const S = { panel: null, videos: [], temas: [], ajustes: null };
+  const S = { panel: null, videos: [], temas: [], ajustes: null, series: [] };
   let prevSteps = {}, tick = null, showAll = false, signCache = {};
 
   function toast(text, bad) { const t = h('div', 'toast' + (bad ? ' bad' : ''), text); $('toasts').append(t); setTimeout(() => t.remove(), 4200); }
@@ -492,8 +501,26 @@
       const row = h('div', 'tm'), tt = h('div', 't'); tt.append(h('b', null, t.tema)); if (t.notas) tt.append(h('small', null, t.notas));
       const del = h('button', 'x', '×'); del.type = 'button'; del.setAttribute('aria-label', 'Quitar tema');
       del.addEventListener('click', async () => { const { error } = await sb.from('temas').delete().eq('id', t.id); if (error) toast('No se pudo quitar', true); });
-      row.append(h('span', 'n', String(i + 1)), tt, del); box.append(row);
+      const extra = t.tipo === 'serie' ? h('span', 'pill or', `Serie · ${t.partes || 3} partes`) : null;
+      row.append(h('span', 'n', String(i + 1)), tt, ...(extra ? [extra] : []), del); box.append(row);
     });
+    renderSeries();
+  }
+  function renderSeries() {
+    const box = $('series'); box.replaceChildren();
+    for (const s of S.series.filter((x) => x.estado === 'en_curso')) {
+      const hechas = Math.max(0, (s.siguiente || 1) - 1), row = h('div', 'sr'), tt = h('div', 't');
+      tt.append(h('b', null, 'Serie en curso: ' + (s.titulo ? s.titulo.charAt(0) + s.titulo.slice(1).toLowerCase() : s.tema)),
+        h('small', null, `Hechas ${hechas} de ${s.partes} · la parte ${s.siguiente} sale en el próximo vídeo`));
+      const dots = h('div', 'dots'); for (let i = 1; i <= s.partes; i++) dots.append(h('i', i <= hechas ? 'on' : null));
+      const stop = h('button', 'x', '×'); stop.type = 'button'; stop.title = 'Cancelar la serie (no se harán las partes que faltan)';
+      stop.addEventListener('click', async () => {
+        if (stop.dataset.sure !== '1') { stop.dataset.sure = '1'; stop.textContent = '¿?'; setTimeout(() => { stop.dataset.sure = ''; stop.textContent = '×'; }, 3000); return; }
+        const { error } = await sb.from('series').update({ estado: 'cancelada' }).eq('id', s.id);
+        error ? toast('No se pudo cancelar', true) : toast('Serie cancelada');
+      });
+      row.append(tt, dots, stop); box.append(row);
+    }
   }
 
   // ---------- archivo ----------
@@ -572,14 +599,15 @@
   }
 
   async function loadAll() {
-    const [p, v, t, a] = await Promise.all([
+    const [p, v, t, a, se] = await Promise.all([
       sb.from('panel').select('data').eq('id', 1).maybeSingle(),
       sb.from('videos').select('*').order('creado_at', { ascending: false }).limit(200),
       sb.from('temas').select('*').order('creado_at'),
       sb.from('ajustes').select('*').eq('id', 1).maybeSingle(),
+      sb.from('series').select('id, tema, titulo, partes, siguiente, estado, creado_at').order('creado_at'),
     ]);
     if (p.error || !p.data) { $('livetxt').textContent = p.error ? 'Error al leer' : 'Sin acceso con esta cuenta'; $('live').className = 'live'; return; }
-    S.panel = p.data.data; S.videos = v.data || []; S.temas = t.data || []; S.ajustes = a.data;
+    S.panel = p.data.data; S.videos = v.data || []; S.temas = t.data || []; S.ajustes = a.data; S.series = se.data || [];
     $('livetxt').textContent = 'En directo'; $('live').className = 'live on';
     renderAll();
   }
@@ -616,6 +644,7 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (x) => { if (x.new && x.new.data) { S.panel = x.new.data; renderAll(); } })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'videos' }, () => sb.from('videos').select('*').order('creado_at', { ascending: false }).limit(200).then(({ data }) => { S.videos = data || []; renderAll(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'temas' }, () => sb.from('temas').select('*').order('creado_at').then(({ data }) => { S.temas = data || []; renderTemas(); }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'series' }, () => sb.from('series').select('id, tema, titulo, partes, siguiente, estado, creado_at').order('creado_at').then(({ data }) => { S.series = data || []; renderSeries(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes' }, (x) => { if (x.new) { S.ajustes = x.new; renderAjustes(); renderNow(); } })
       .subscribe((s) => { if (s === 'SUBSCRIBED') { $('livetxt').textContent = 'En directo'; $('live').className = 'live on'; } });
     setInterval(loadAll, 120000);
@@ -644,11 +673,11 @@
   $('activo').addEventListener('change', () => saveAjustes({ activo: $('activo').checked }));
   $('addtema').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const tema = $('ntema').value.trim(), notas = $('nnotas').value.trim();
+    const tema = $('ntema').value.trim(), notas = $('nnotas').value.trim(), serie = $('nserie').checked;
     if (tema.length < 3) return;
-    const { error } = await sb.from('temas').insert({ tema, notas: notas || null });
+    const { error } = await sb.from('temas').insert({ tema, notas: notas || null, tipo: serie ? 'serie' : 'video', partes: 3 });
     if (error) return toast('No se pudo añadir el tema', true);
-    $('ntema').value = ''; $('nnotas').value = ''; toast('Tema añadido a la cola');
+    $('ntema').value = ''; $('nnotas').value = ''; $('nserie').checked = false; toast(serie ? 'Serie añadida a la cola' : 'Tema añadido a la cola');
   });
   $('btngen').addEventListener('click', () => { $('gtema').value = ''; msg($('gmsg'), ''); $('genmodal').hidden = false; $('gtema').focus(); });
   $('gcancel').addEventListener('click', () => { $('genmodal').hidden = true; });
