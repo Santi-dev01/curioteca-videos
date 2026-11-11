@@ -302,6 +302,7 @@
           <div class="sched">
             <label class="field">Crear el vídeo a las<input type="time" id="hgen" step="600"></label>
             <label class="field">Publicarlo a las<input type="time" id="hpub" step="600"></label>
+            <label class="field">Estilo de los vídeos<select id="estilo"><option value="monigotes">Monigotes animados</option><option value="realista">Realista (imágenes IA)</option></select></label>
             <label class="switch"><input type="checkbox" id="activo"> Automático activado</label>
           </div>
           <p class="note">Cada día se crea un vídeo a la primera hora y se programa para la segunda (o para el día siguiente si ya ha pasado). El reloj revisa cada 10 minutos.</p>
@@ -347,6 +348,8 @@
     <h2>Generar un vídeo ahora</h2>
     <p>Tarda unos 25 minutos. Se programará para tu hora de publicación y podrás cambiarla después.</p>
     <label class="field">Tema (opcional)<input id="gtema" maxlength="300" placeholder="Vacío: el primero de la cola o lo elige la IA"></label>
+    <label class="field">Estilo<select id="gestilo"><option value="monigotes">Monigotes animados</option><option value="realista">Realista (imágenes IA)</option></select></label>
+    <label class="opt"><input type="checkbox" id="gprueba"> Solo prueba (queda guardado para verlo; no se publica)</label>
     <div class="row"><button class="btn" type="submit" id="gok">Generar</button><button class="btn ghost" type="button" id="gcancel">Cancelar</button></div>
     <div class="msg" id="gmsg"></div>
   </form>
@@ -515,11 +518,12 @@
     if (document.activeElement !== $('hgen')) $('hgen').value = String(a.hora_generar).slice(0, 5);
     if (document.activeElement !== $('hpub')) $('hpub').value = String(a.hora_publicar).slice(0, 5);
     $('activo').checked = !!a.activo;
+    if (document.activeElement !== $('estilo')) $('estilo').value = a.estilo || 'monigotes';
     $('schedmsg').textContent = a.activo ? 'Activo' : 'En pausa';
   }
   async function saveAjustes(patch) {
     const { error } = await sb.from('ajustes').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1);
-    error ? toast('No se pudo guardar el horario', true) : toast('Horario guardado');
+    error ? toast('No se pudo guardar', true) : toast(patch.estilo ? 'Estilo guardado' : 'Horario guardado');
   }
 
   function renderTemas() {
@@ -709,6 +713,7 @@
   $('hgen').addEventListener('change', () => $('hgen').value && saveAjustes({ hora_generar: $('hgen').value }));
   $('hpub').addEventListener('change', () => $('hpub').value && saveAjustes({ hora_publicar: $('hpub').value }));
   $('activo').addEventListener('change', () => saveAjustes({ activo: $('activo').checked }));
+  $('estilo').addEventListener('change', () => saveAjustes({ estilo: $('estilo').value }));
   $('addtema').addEventListener('submit', async (e) => {
     e.preventDefault();
     const tema = $('ntema').value.trim(), notas = $('nnotas').value.trim(), serie = $('nserie').checked;
@@ -717,11 +722,11 @@
     if (error) return toast('No se pudo añadir el tema', true);
     $('ntema').value = ''; $('nnotas').value = ''; $('nserie').checked = false; toast(serie ? 'Serie añadida a la cola' : 'Tema añadido a la cola');
   });
-  $('btngen').addEventListener('click', () => { $('gtema').value = ''; msg($('gmsg'), ''); $('genmodal').hidden = false; $('gtema').focus(); });
+  $('btngen').addEventListener('click', () => { $('gtema').value = ''; $('gestilo').value = (S.ajustes && S.ajustes.estilo) || 'monigotes'; $('gprueba').checked = false; msg($('gmsg'), ''); $('genmodal').hidden = false; $('gtema').focus(); });
   $('gcancel').addEventListener('click', () => { $('genmodal').hidden = true; });
   $('genform').addEventListener('submit', async (e) => {
     e.preventDefault(); msg($('gmsg'), 'Lanzando…');
-    const r = await callControl({ action: 'generar', tema: $('gtema').value.trim() }, $('gok'), 'Generación lanzada: verás el progreso arriba en un minuto');
+    const r = await callControl({ action: 'generar', tema: $('gtema').value.trim(), estilo: $('gestilo').value, prueba: $('gprueba').checked }, $('gok'), 'Generación lanzada: verás el progreso arriba en un minuto');
     if (r) $('genmodal').hidden = true; else msg($('gmsg'), 'No se pudo lanzar. Mira el aviso de abajo.', true);
   });
   const closeVideo = () => { $('mv').pause(); $('mv').removeAttribute('src'); $('modal').hidden = true; };
