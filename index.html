@@ -72,6 +72,11 @@
   .now .line b { color: var(--ink); font-weight: 600; }
   .clock { font-family: var(--mono); color: var(--ink); background: #f3eee7; border-radius: 8px; padding: 2px 8px; }
 
+  .ags { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+  .ag { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 12px; background: var(--tint); border: 1px solid var(--line); }
+  .ag .ic { font-size: 18px; line-height: 1.3; flex: none; } .ag .t { flex: 1; min-width: 0; }
+  .ag b { font-size: 13px; } .ag p { margin: 1px 0 0; font-size: 13px; color: var(--dim); overflow-wrap: anywhere; } .ag time { font: 500 11px var(--mono); color: var(--faint); flex: none; }
+  .ag.nuevo { border-color: var(--orange-line); background: var(--orange-soft); }
   .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 18px 20px; }
   .ph { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; min-width: 0; padding: 0 6px; }
   .ph .dot { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); border: 1px solid var(--line-2); color: var(--faint); position: relative; z-index: 2; transition: all .5s; }
@@ -265,6 +270,11 @@
 
     <section class="card flow reveal" id="flow" aria-label="Fases del vídeo"></section>
 
+    <section class="card panel reveal" id="agentesbox">
+      <h3>Equipo de agentes <span id="agsum"></span></h3>
+      <div class="ags" id="ags"></div>
+    </section>
+
     <section class="kpis">
       <div class="card kpi reveal"><span class="lab">Vídeos</span><span class="num" data-k="videos">0</span><span class="hint">generados</span></div>
       <div class="card kpi reveal"><span class="lab">Programados</span><span class="num or" data-k="sched">0</span><span class="hint">esperando su hora</span></div>
@@ -429,6 +439,20 @@
     if (next && !(todayVid && todayVid.id === next.id)) line.append(h('span', null, `Próxima publicación: ${fmtWhen(next.publicar_el)}`));
   }
 
+  const AG_IC = { 'Investigador': '🔎', 'Guionista': '✍️', 'Crítico': '🎯', 'Verificador': '✅', 'Director': '🎬', 'Revisor de imágenes': '🖼️', 'Community manager': '📣', 'Kaggle': '🎞️' };
+  function renderAgentes() {
+    const st = S.panel || {}, cur = st.current, last = (st.runs || []).find((r) => (r.agentes || []).length);
+    const list = (cur && cur.agentes && cur.agentes.length ? cur.agentes : (last ? last.agentes : [])) || [];
+    const box = $('ags'); box.replaceChildren();
+    $('agsum').textContent = cur && cur.agentes ? 'trabajando ahora' : (last ? 'último vídeo: ' + (last.tema || '') : '');
+    if (!list.length) { box.append(h('div', 'empty', 'Cuando se haga un vídeo, aquí verás lo que hace cada agente.')); return; }
+    list.slice().reverse().forEach((a, i) => {
+      const row = h('div', 'ag' + (cur && i === 0 ? ' nuevo' : ''));
+      const t = h('div', 't'); t.append(h('b', null, a.quien), h('p', null, a.texto));
+      row.append(h('span', 'ic', AG_IC[a.quien] || '🤖'), t, h('time', null, a.at ? new Date(a.at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }) : ''));
+      box.append(row);
+    });
+  }
   function renderFlow() {
     const st = S.panel || {}, steps = st.current ? st.current.steps : DEFAULT_STEPS, box = $('flow'); box.replaceChildren();
     for (const s of steps) {
@@ -597,7 +621,7 @@
   }
 
   function renderAll() {
-    renderNow(); renderFlow(); renderKpis(); renderQueue(); renderAjustes(); renderTemas(); renderCal(); renderParts(); renderVids(); renderRuns();
+    renderNow(); renderFlow(); renderAgentes(); renderKpis(); renderQueue(); renderAjustes(); renderTemas(); renderCal(); renderParts(); renderVids(); renderRuns();
     if (S.panel) $('upd').textContent = 'Datos actualizados ' + ago(S.panel.updated || new Date().toISOString());
   }
 
