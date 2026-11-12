@@ -131,13 +131,13 @@ const EQ = [
   { id: 'explorador', nombre: 'Explorador', ic: '🧭', color: '#3b82f6', miembros: ['Explorador'], con: ['YouTube', 'Gemini'], hab: ['ver-shorts', 'sacar-lecciones', 'proponer-mejoras', 'temas-nuevos'], pos: [0, 0], desc: 'Ve Shorts todo el día y enseña al resto' },
   { id: 'investigacion', nombre: 'Investigación', ic: '🔎', color: '#14b8a6', miembros: ['Investigador'], con: ['Gemini'], hab: ['buscar-datos', 'fuentes-fiables', 'ficha-de-hechos'], pos: [1, 0], desc: 'Busca los datos reales del tema' },
   { id: 'guion', nombre: 'Guion', ic: '✍️', color: '#8b5cf6', miembros: ['Guionista'], con: ['Gemini'], hab: ['escribir-guion', 'ganchos', 'pausas', 'series'], pos: [2, 0], desc: 'Escribe la historia frase a frase' },
-  { id: 'critica', nombre: 'Crítica', ic: '🎯', color: '#ef4444', miembros: ['Crítico'], con: ['Gemini'], hab: ['nota-de-retencion', 'pedir-reescritura'], pos: [3, 0], desc: 'Puntúa el guion y exige un 8' },
-  { id: 'verificacion', nombre: 'Verificación', ic: '✅', color: '#22c55e', miembros: ['Verificador'], con: ['Gemini'], hab: ['comprobar-datos', 'corregir'], pos: [3, 1], desc: 'Que todo sea verdad' },
+  { id: 'critica', nombre: 'Crítica', ic: '🎯', color: '#ef4444', miembros: ['Crítico', 'Crítico (2ª opinión)'], con: ['Gemini', 'Groq'], hab: ['nota-de-retencion', 'pedir-reescritura'], pos: [3, 0], desc: 'Puntúa el guion y exige un 8' },
+  { id: 'verificacion', nombre: 'Verificación', ic: '✅', color: '#22c55e', miembros: ['Verificador', 'Verificador (2ª opinión)'], con: ['Gemini', 'Groq'], hab: ['comprobar-datos', 'corregir'], pos: [3, 1], desc: 'Que todo sea verdad' },
   { id: 'titulos', nombre: 'Títulos', ic: '📰', color: '#f59e0b', miembros: ['Titular'], con: ['Gemini'], hab: ['titulo-gancho', 'plan-de-portada'], pos: [3, 2], desc: 'Título que dice de qué va y engancha' },
   { id: 'direccion', nombre: 'Dirección', ic: '🎬', color: '#ec4899', miembros: ['Director de animación', 'Director'], con: ['Gemini', 'Remotion'], hab: ['escenas', 'planos', 'reparto', 'pausas'], pos: [3, 3], desc: 'Decide qué se ve en cada frase' },
   { id: 'escenografia', nombre: 'Escenografía', ic: '🎨', color: '#06b6d4', miembros: ['Escenógrafo'], con: ['Gemini', 'Remotion'], hab: ['dibujar-fondos', 'dibujar-objetos', 'animar-detalles'], pos: [2, 3], desc: 'Dibuja cada fondo a medida' },
   { id: 'sonido', nombre: 'Sonido', ic: '🎧', color: '#6366f1', miembros: ['Diseñador de sonido', 'Revisor de sonido'], con: ['Voz Álvaro', 'Gemini'], hab: ['voz', 'golpes', 'escuchar-mezcla'], pos: [1, 3], desc: 'Voz y golpes que pegan' },
-  { id: 'revision', nombre: 'Revisión', ic: '🖼️', color: '#84cc16', miembros: ['Revisor de fotogramas', 'Revisor de imágenes'], con: ['Gemini'], hab: ['mirar-fotogramas', 'pedir-arreglos', 'redibujar'], pos: [0, 3], desc: 'Mira el vídeo como en el móvil' },
+  { id: 'revision', nombre: 'Revisión', ic: '🖼️', color: '#84cc16', miembros: ['Revisor de fotogramas', 'Supervisor final', 'Jefe de calidad', 'Revisor de imágenes'], con: ['Gemini'], hab: ['mirar-fotogramas', 'ver-video-montado', 'pedir-arreglos', 'redibujar', 'frenar-publicacion'], pos: [0, 3], desc: 'Revisa por rondas, ve el vídeo montado y frena lo que no esté bien' },
   { id: 'portada', nombre: 'Portada', ic: '🏷️', color: '#f97316', miembros: ['Revisor de portada'], con: ['Gemini', 'Remotion'], hab: ['dibujar-portada', 'elegir-la-mejor'], pos: [0, 2], desc: 'La portada que hace pulsar' },
   { id: 'redes', nombre: 'Redes', ic: '📣', color: '#0ea5e9', miembros: ['Community manager'], con: ['YouTube', 'Instagram'], hab: ['textos-por-red', 'comentario-fijado', 'publicar'], pos: [0, 1], desc: 'Textos y publicación en cada red' },
 ];
@@ -197,7 +197,7 @@ function sala(e) {
   for (let k = 0; k < 4; k++) { const l = caja(.45, .5, .18, M([0xc0392b, 0x2e8b57, 0xf2c14e, 0x3e6fb0][k])); l.position.set(-CEL / 2 + .55, 2.35, 1.8 + k * .3); g.add(l); }
   const maceta = new THREE.Mesh(new THREE.CylinderGeometry(.35, .28, .6, 12), M(0xc8794a)); maceta.position.set(CEL / 2 - .9, .55, CEL / 2 - .9); maceta.castShadow = true; g.add(maceta);
   const hojas = new THREE.Mesh(new THREE.IcosahedronGeometry(.7, 0), M(0x3f8f4a, { flatShading: true })); hojas.position.set(CEL / 2 - .9, 1.35, CEL / 2 - .9); hojas.castShadow = true; g.add(hojas);
-  const reales = e.miembros.filter((m) => !['Director', 'Revisor de imágenes'].includes(m));
+  const reales = e.miembros.filter((m) => !['Director', 'Revisor de imágenes', 'Crítico (2ª opinión)', 'Verificador (2ª opinión)'].includes(m));
   const n = reales.length + 1, gente = [], pantallas = [];
   for (let k = 0; k < n; k++) {
     const x = n === 1 ? 0 : -2.4 + k * (4.8 / (n - 1)), z = -1.8;
@@ -351,7 +351,7 @@ function pintarFicha() {
   const e = EQ.find((x) => x.id === S.abierta); if (!e) return;
   const on = salas[e.id].on, mis = S.act.filter((a) => eqDe(a.agente) === e), u = mis[0], idx = EQ.indexOf(e);
   const c = $('fichac'); c.replaceChildren(); c.style.setProperty('--c', e.color);
-  c.append(h('div', 'eq', `Equipo ${String(idx + 1).padStart(2, '0')} · ${e.miembros.filter((m) => !['Director', 'Revisor de imágenes'].includes(m)).join(' + ')}`));
+  c.append(h('div', 'eq', `Equipo ${String(idx + 1).padStart(2, '0')} · ${e.miembros.filter((m) => !['Director', 'Revisor de imágenes', 'Crítico (2ª opinión)', 'Verificador (2ª opinión)'].includes(m)).join(' + ')}`));
   const t = h('div', 'tit'), av = h('div', 'av', e.ic); av.style.background = e.color + '30'; av.style.boxShadow = `0 0 24px -6px ${e.color}`;
   const tx = h('div'); tx.append(h('h2', null, e.nombre), h('p', null, e.desc)); t.append(av, tx); c.append(t);
   const es = h('div', 'estado' + (on ? ' on' : '')); es.append(h('i'), document.createTextNode(on ? 'Trabajando ahora' : (u ? `Último trabajo a las ${hora(u.at)}` : 'Esperando su turno'))); c.append(es);
