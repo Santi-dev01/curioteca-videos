@@ -760,7 +760,7 @@
     try {
       const { data, error } = await sb.functions.invoke('control', { body });
       if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} throw new Error(m); }
-      toast(okText); return data;
+      toast((data && data.mensaje) || okText); return data;  // con Claude: «Pedido a Claude…»
     } catch (e) { toast(e.message || 'No se pudo', true); }
     finally { if (btn) btn.disabled = false; }
   }
