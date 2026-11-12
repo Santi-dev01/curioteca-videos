@@ -6,343 +6,451 @@
 <title>Sede Curioteca</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
 <style>
-  :root { --bg: #0d111c; --card: #161b2b; --card2: #1d2336; --line: #2a3150; --ink: #eef1f8; --dim: #8e97b3; --or: #ff6a1a; --ok: #3ddc84; --mono: "JetBrains Mono", ui-monospace, monospace; }
+  :root { --bg: #070a14; --glass: rgba(18, 23, 40, .72); --glass2: rgba(30, 37, 62, .7); --line: rgba(255, 255, 255, .09); --ink: #f1f4fb; --dim: #8f99b8;
+    --or: #ff6a1a; --ok: #3ddc84; --mono: "JetBrains Mono", ui-monospace, monospace; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 "Figtree", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-  button { font: inherit; cursor: pointer; }
-  .bar { position: sticky; top: 0; z-index: 5; background: rgba(13, 17, 28, .92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  .bar .r1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px 6px; }
-  .bar h1 { margin: 0; font: 800 17px/1 "Figtree"; display: flex; align-items: center; gap: 8px; }
-  .bar h1 i { width: 10px; height: 10px; border-radius: 50%; background: var(--or); box-shadow: 0 0 10px var(--or); }
-  .bar a { color: var(--dim); text-decoration: none; font-size: 13px; }
-  .trab { font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
-  .trab b { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); display: inline-block; }
-  .tabs { display: flex; gap: 4px; padding: 4px 12px 10px; overflow-x: auto; }
-  .tabs button { background: none; border: 0; color: var(--dim); padding: 6px 12px; border-radius: 10px; font-weight: 600; font-size: 14px; white-space: nowrap; }
-  .tabs button.on { background: var(--card2); color: var(--ink); }
-  .tabs button span { font-size: 11px; background: var(--card2); border-radius: 6px; padding: 1px 6px; margin-left: 4px; color: var(--dim); }
-  main { max-width: 900px; margin: 0 auto; }
-  #escena { position: relative; background: radial-gradient(120% 90% at 50% 40%, #f3f4f8 0%, #dfe3ec 100%); overflow: hidden; touch-action: manipulation; }
-  #escena svg { display: block; width: 100%; height: auto; }
-  .sala { cursor: pointer; }
-  .sala:hover .suelo { filter: brightness(1.04); }
-  .bob { animation: bob 0.9s ease-in-out infinite; transform-box: fill-box; }
-  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-  .pant { transition: fill .4s; }
-  .pant.on { animation: flick 1.4s steps(2) infinite; }
-  @keyframes flick { 50% { opacity: .75; } }
-  .ojo { animation: mirar 6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-  @keyframes mirar { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(6px); } 60% { transform: translateX(-6px); } }
-  @media (prefers-reduced-motion: reduce) { .bob, .pant.on, .ojo { animation: none; } }
-  .vista { padding: 14px 16px 120px; }
-  .hoja { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-bottom: 0;
-    border-radius: 20px 20px 0 0; padding: 10px 16px 24px; max-height: 70vh; overflow-y: auto; transform: translateY(105%); transition: transform .35s cubic-bezier(.2, .8, .2, 1); box-shadow: 0 -20px 40px rgba(0, 0, 0, .4); }
-  .hoja.on { transform: none; }
-  .hoja .asa { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 10px; }
-  .hoja .x { position: absolute; right: 14px; top: 12px; background: none; border: 0; color: var(--dim); font-size: 20px; }
-  .eq { font: 600 11px var(--mono); letter-spacing: .08em; color: var(--dim); text-transform: uppercase; }
-  .tit { display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; }
-  .tit .av { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; }
-  .tit h2 { margin: 0; font: 800 19px "Figtree"; }
-  .estado { font-size: 13px; color: var(--dim); margin-left: 46px; }
-  .estado.on { color: var(--ok); }
-  .sec { font: 600 11px var(--mono); letter-spacing: .08em; color: var(--dim); text-transform: uppercase; margin: 18px 0 8px; display: flex; justify-content: space-between; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 15px/1.45 "Figtree", system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+  button { font: inherit; cursor: pointer; color: inherit; }
+  #mundo { position: fixed; inset: 0; background: radial-gradient(90% 70% at 50% 35%, #1c2440 0%, #0b0f1d 60%, #070a14 100%); }
+  #mundo canvas { display: block; }
+  .css2d { position: fixed !important; inset: 0; pointer-events: none; }
+  .tag { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 5px 10px 5px 8px; border-radius: 999px; background: rgba(255, 255, 255, .92);
+    color: #12152a; font: 700 12px "Figtree"; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); white-space: nowrap; }
+  .tag i { width: 8px; height: 8px; border-radius: 50%; }
+  .tag.on { box-shadow: 0 0 0 2px var(--c), 0 0 22px var(--c); }
+  .tag.on i { animation: lat 1s infinite; }
+  @keyframes lat { 50% { transform: scale(1.6); } }
+  .burbuja { max-width: 210px; padding: 8px 11px; border-radius: 14px 14px 14px 4px; background: rgba(12, 16, 32, .9); border: 1px solid var(--c); color: #e9edf8; font: 500 12px/1.35 "Figtree";
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .4); opacity: 0; transition: opacity .5s; pointer-events: none; }
+  .burbuja.on { opacity: 1; }
+  .burbuja b { color: var(--c); }
+  .hud { position: fixed; top: 0; left: 0; right: 0; z-index: 5; padding: calc(10px + env(safe-area-inset-top)) 12px 0; pointer-events: none; }
+  .hud > * { pointer-events: auto; }
+  .r1 { display: flex; align-items: center; gap: 10px; }
+  .marca { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 14px; background: var(--glass); backdrop-filter: blur(14px); border: 1px solid var(--line); min-width: 0; }
+  .marca i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--or); box-shadow: 0 0 12px var(--or); }
+  .marca b { font: 800 15px "Figtree"; } .marca small { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  .vivo { display: flex; align-items: center; gap: 6px; font: 600 12px var(--mono); padding: 8px 10px; border-radius: 12px; background: var(--glass); backdrop-filter: blur(14px); border: 1px solid var(--line); white-space: nowrap; }
+  .vivo i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); animation: lat 1.6s infinite; }
+  .r1 a { margin-left: auto; color: var(--dim); text-decoration: none; font-size: 13px; padding: 8px 10px; border-radius: 12px; background: var(--glass); border: 1px solid var(--line); white-space: nowrap; }
+  .tabs { display: inline-flex; gap: 2px; margin-top: 8px; padding: 4px; border-radius: 14px; background: var(--glass); backdrop-filter: blur(14px); border: 1px solid var(--line); }
+  .tabs button { border: 0; background: none; padding: 7px 12px; border-radius: 10px; color: var(--dim); font-weight: 700; font-size: 13px; }
+  .tabs button.on { background: rgba(255, 255, 255, .1); color: var(--ink); }
+  .acciones { position: fixed; right: 12px; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .acciones button { width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(14px); font-size: 18px; }
+  .acciones button.rep { width: auto; padding: 0 14px; font: 700 13px "Figtree"; }
+  .acciones button.on { background: var(--or); border-color: var(--or); }
+  .cinta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(0deg, rgba(7, 10, 20, .95), rgba(7, 10, 20, 0));
+    display: flex; gap: 8px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .ev { flex: none; display: flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 12px; background: var(--glass); border: 1px solid var(--line); font-size: 12px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: entra .5s ease-out; cursor: pointer; }
+  .ev i { width: 7px; height: 7px; border-radius: 50%; flex: none; } .ev b { font-weight: 700; } .ev time { color: var(--dim); font: 500 11px var(--mono); }
+  @keyframes entra { from { opacity: 0; transform: translateX(-20px); } }
+  .ficha { position: fixed; z-index: 8; right: 12px; top: 112px; bottom: 70px; width: min(380px, calc(100vw - 24px)); padding: 16px; border-radius: 20px; background: var(--glass); backdrop-filter: blur(20px);
+    border: 1px solid var(--line); overflow-y: auto; transform: translateX(115%); transition: transform .45s cubic-bezier(.2, .8, .2, 1); box-shadow: 0 30px 60px rgba(0, 0, 0, .5); }
+  @media (max-width: 700px) { .ficha { top: auto; bottom: 0; right: 0; left: 0; width: auto; max-height: 60vh; border-radius: 22px 22px 0 0; transform: translateY(105%); } }
+  .ficha.on { transform: none; }
+  .ficha .x { position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); }
+  .eq { font: 700 10.5px var(--mono); letter-spacing: .1em; color: var(--dim); text-transform: uppercase; padding-right: 40px; }
+  .tit { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; }
+  .tit .av { flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; }
+  .tit h2 { margin: 0; font: 800 21px "Figtree"; } .tit p { margin: 2px 0 0; font-size: 13px; color: var(--dim); }
+  .estado { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, .05); font-size: 12.5px; color: var(--dim); }
+  .estado.on { color: var(--ok); background: rgba(61, 220, 132, .1); } .estado i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .sec { font: 700 10.5px var(--mono); letter-spacing: .1em; color: var(--dim); text-transform: uppercase; margin: 18px 0 8px; display: flex; justify-content: space-between; }
   .sec em { font-style: normal; color: var(--ok); }
+  .cadena { display: flex; gap: 3px; } .cadena span { flex: 1; height: 6px; border-radius: 4px; background: rgba(255, 255, 255, .08); } .cadena span.yo { background: var(--c); box-shadow: 0 0 10px var(--c); } .cadena span.hecho { background: rgba(255, 255, 255, .28); }
+  .cadtxt { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--dim); margin-top: 6px; }
   .kp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .kp div { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-width: 0; }
-  .kp small { display: block; font-size: 11px; color: var(--dim); }
-  .kp b { display: block; font: 800 22px "Figtree"; margin-top: 2px; }
-  .kp i { display: block; font-size: 11px; color: var(--dim); font-style: normal; }
+  .kp div { background: var(--glass2); border: 1px solid var(--line); border-radius: 14px; padding: 10px; min-width: 0; }
+  .kp small { display: block; font-size: 11px; color: var(--dim); } .kp b { display: block; font: 800 24px "Figtree"; } .kp i { display: block; font-style: normal; font-size: 11px; color: var(--dim); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chips span { background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
-  .chips span small { display: block; color: var(--ok); font-size: 11px; }
-  .hab { display: grid; grid-template-columns: 1fr 110px 60px; gap: 8px; align-items: center; font: 500 12px var(--mono); padding: 4px 0; }
-  .hab .b { height: 5px; background: var(--card2); border-radius: 5px; overflow: hidden; } .hab .b i { display: block; height: 100%; border-radius: 5px; }
-  .hab small { color: var(--dim); text-align: right; }
+  .chips span { display: flex; align-items: center; gap: 8px; background: var(--glass2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 11px; font-size: 13px; }
+  .chips span i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .hab { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; font: 500 12px var(--mono); padding: 5px 0; }
+  .hab .b { height: 6px; background: rgba(255, 255, 255, .07); border-radius: 6px; overflow: hidden; } .hab .b i { display: block; height: 100%; border-radius: 6px; transition: width 1s; }
+  .hab small { color: var(--dim); }
   .feed { list-style: none; margin: 0; padding: 0; }
-  .feed li { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-  .feed li i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
-  .feed li b { font-weight: 700; } .feed li time { color: var(--dim); font-size: 12px; white-space: nowrap; }
-  .feed li p { margin: 0; color: #cfd5e6; overflow-wrap: anywhere; }
-  .tablero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .tablero div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
-  .tablero div.on { border-color: var(--or); }
-  .tablero b { display: block; font: 800 22px "Figtree"; } .tablero small { font: 600 10px var(--mono); color: var(--dim); text-transform: uppercase; }
-  .vacio { color: var(--dim); font-size: 14px; padding: 12px 0; }
-  .login { max-width: 360px; margin: 60px auto; padding: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; text-align: center; }
-  .login a { color: var(--or); }
+  .feed li { display: grid; grid-template-columns: 9px 1fr auto; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .feed li > i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; } .feed li b { font-weight: 700; } .feed li time { color: var(--dim); font: 500 11px var(--mono); white-space: nowrap; }
+  .feed li p { margin: 0; color: #d6dbea; overflow-wrap: anywhere; }
+  .vacio { color: var(--dim); font-size: 13.5px; padding: 10px 0; display: block !important; }
+  .vista { position: fixed; z-index: 6; inset: 112px 12px 64px; padding: 16px; border-radius: 20px; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--line); overflow-y: auto; }
+  .flujo { display: grid; gap: 8px; }
+  .paso { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--glass2); border: 1px solid var(--line); cursor: pointer; }
+  .paso .av { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; }
+  .paso > div { min-width: 0; } .paso b { display: block; } .paso p { margin: 2px 0 0; font-size: 12.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .paso small { font: 700 11px var(--mono); color: var(--dim); } .paso.on { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 0 24px -6px var(--c); } .paso.on small { color: var(--ok); }
+  .login { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20; }
+  .login[hidden] { display: none; }
+  .login div { padding: 24px; border-radius: 18px; background: var(--glass); border: 1px solid var(--line); text-align: center; } .login a { color: var(--or); }
+  @media (prefers-reduced-motion: reduce) { .tag.on i, .vivo i, .ev { animation: none; } }
 </style>
 </head>
 <body>
-<div class="bar">
-  <div class="r1"><h1><i></i>Sede Curioteca</h1><span class="trab"><b></b><span id="ntrab">0 trabajando</span></span><a href="./">← Panel</a></div>
-  <nav class="tabs" id="tabs">
-    <button data-v="oficina" class="on">Oficina</button><button data-v="tareas">Tareas <span id="ntar">0</span></button><button data-v="actividad">Actividad</button><button data-v="cerebro">Cerebro</button>
-  </nav>
+<div id="mundo"></div>
+<div class="hud">
+  <div class="r1">
+    <div class="marca"><i></i><div><b>Sede Curioteca</b><br><small id="sub">12 equipos · 1 cerebro</small></div></div>
+    <div class="vivo"><i></i><span id="ntrab">0 trabajando</span></div>
+    <a href="./">← Panel</a>
+  </div>
+  <nav class="tabs" id="tabs"><button data-v="oficina" class="on">Oficina</button><button data-v="flujo">Flujo</button><button data-v="actividad">Actividad</button><button data-v="cerebro">Cerebro</button></nav>
 </div>
-<main>
-  <div id="login" class="login" hidden>Inicia sesión en el <a href="./">panel</a> y vuelve aquí.</div>
-  <section id="v-oficina"><div id="escena"></div><div class="vista" style="padding-bottom:40px"><div class="sec">Ahora mismo · pulsa una sala para ver su ficha</div><ul class="feed" id="ahora"></ul></div></section>
-  <section id="v-tareas" class="vista" hidden></section>
-  <section id="v-actividad" class="vista" hidden></section>
-  <section id="v-cerebro" class="vista" hidden></section>
-</main>
-<div class="hoja" id="hoja"><div class="asa"></div><button class="x" id="cerrar" aria-label="Cerrar">✕</button><div id="hojac"></div></div>
+<div class="acciones">
+  <button class="rep" id="rep" title="Repetir en 30 s cómo se hizo el último vídeo">▶ Repetición</button>
+  <button id="giro" class="on" title="Giro automático">⟳</button>
+  <button id="centro" title="Ver toda la oficina">⌂</button>
+</div>
+<div class="cinta" id="cinta"></div>
+<aside class="ficha" id="ficha"><button class="x" id="cerrar" aria-label="Cerrar">✕</button><div id="fichac"></div></aside>
+<section class="vista" id="vista" hidden></section>
+<div class="login" id="login" hidden><div>Inicia sesión en el <a href="./">panel</a> y vuelve aquí.</div></div>
 
-<script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
 const sb = supabase.createClient('https://hmnwozowfofdknzdtxsq.supabase.co', 'sb_publishable_r6VlVPL5ww41GdsJvW7EBQ_vRFEG2rW');
 const $ = (id) => document.getElementById(id);
 const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-const NS = 'http://www.w3.org/2000/svg';
-const sv = (tag, at = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (parent) parent.append(e); return e; };
 const TZ = 'Europe/Madrid';
 const hora = (iso) => new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
-const hoyIni = () => { const d = new Date(new Date().toLocaleString('en-US', { timeZone: TZ })); d.setHours(0, 0, 0, 0); return Date.now() - (new Date(new Date().toLocaleString('en-US', { timeZone: TZ })) - d); };
+const inicioHoy = () => { const n = new Date(), m = new Date(n.toLocaleString('en-US', { timeZone: TZ })); const z = new Date(m); z.setHours(0, 0, 0, 0); return n.getTime() - (m - z); };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ---------- equipos (salas) ----------
+// ---------- equipos, en el orden en que trabajan (dan la vuelta a la oficina) ----------
 const EQ = [
   { id: 'explorador', nombre: 'Explorador', ic: '🧭', color: '#3b82f6', miembros: ['Explorador'], con: ['YouTube', 'Gemini'], hab: ['ver-shorts', 'sacar-lecciones', 'proponer-mejoras', 'temas-nuevos'], pos: [0, 0], desc: 'Ve Shorts todo el día y enseña al resto' },
   { id: 'investigacion', nombre: 'Investigación', ic: '🔎', color: '#14b8a6', miembros: ['Investigador'], con: ['Gemini'], hab: ['buscar-datos', 'fuentes-fiables', 'ficha-de-hechos'], pos: [1, 0], desc: 'Busca los datos reales del tema' },
   { id: 'guion', nombre: 'Guion', ic: '✍️', color: '#8b5cf6', miembros: ['Guionista'], con: ['Gemini'], hab: ['escribir-guion', 'ganchos', 'pausas', 'series'], pos: [2, 0], desc: 'Escribe la historia frase a frase' },
-  { id: 'critica', nombre: 'Crítica', ic: '🎯', color: '#ef4444', miembros: ['Crítico'], con: ['Gemini'], hab: ['nota-retencion', 'pedir-reescritura'], pos: [3, 0], desc: 'Puntúa el guion y exige un 8' },
-  { id: 'verificacion', nombre: 'Verificación', ic: '✅', color: '#22c55e', miembros: ['Verificador'], con: ['Gemini'], hab: ['comprobar-datos', 'corregir'], pos: [0, 1], desc: 'Que todo sea verdad' },
-  { id: 'titulos', nombre: 'Títulos', ic: '📰', color: '#f59e0b', miembros: ['Titular'], con: ['Gemini'], hab: ['titulo-gancho', 'plan-de-portada'], pos: [3, 1], desc: 'Título que dice de qué va y engancha' },
-  { id: 'direccion', nombre: 'Dirección', ic: '🎬', color: '#ec4899', miembros: ['Director de animación', 'Director'], con: ['Gemini', 'Remotion'], hab: ['escenas', 'planos', 'reparto', 'pausas'], pos: [0, 2], desc: 'Decide qué se ve en cada frase' },
-  { id: 'escenografia', nombre: 'Escenografía', ic: '🎨', color: '#06b6d4', miembros: ['Escenógrafo'], con: ['Gemini', 'Remotion'], hab: ['dibujar-fondos', 'dibujar-objetos', 'animar-detalles'], pos: [3, 2], desc: 'Dibuja cada fondo a medida' },
-  { id: 'sonido', nombre: 'Sonido', ic: '🎧', color: '#6366f1', miembros: ['Diseñador de sonido', 'Revisor de sonido'], con: ['Voz Álvaro', 'Gemini'], hab: ['voz', 'golpes', 'escuchar-mezcla'], pos: [0, 3], desc: 'Voz y golpes que pegan' },
-  { id: 'revision', nombre: 'Revisión', ic: '🖼️', color: '#84cc16', miembros: ['Revisor de fotogramas', 'Revisor de imágenes'], con: ['Gemini'], hab: ['mirar-fotogramas', 'pedir-arreglos', 'redibujar'], pos: [1, 3], desc: 'Mira el vídeo como en el móvil' },
-  { id: 'portada', nombre: 'Portada', ic: '🏷️', color: '#f97316', miembros: ['Revisor de portada'], con: ['Gemini', 'Remotion'], hab: ['dibujar-portada', 'elegir-la-mejor'], pos: [2, 3], desc: 'La portada que hace pulsar' },
-  { id: 'redes', nombre: 'Redes', ic: '📣', color: '#0ea5e9', miembros: ['Community manager'], con: ['YouTube', 'Instagram'], hab: ['textos-por-red', 'comentario-fijado', 'publicar'], pos: [3, 3], desc: 'Textos y publicación en cada red' },
+  { id: 'critica', nombre: 'Crítica', ic: '🎯', color: '#ef4444', miembros: ['Crítico'], con: ['Gemini'], hab: ['nota-de-retencion', 'pedir-reescritura'], pos: [3, 0], desc: 'Puntúa el guion y exige un 8' },
+  { id: 'verificacion', nombre: 'Verificación', ic: '✅', color: '#22c55e', miembros: ['Verificador'], con: ['Gemini'], hab: ['comprobar-datos', 'corregir'], pos: [3, 1], desc: 'Que todo sea verdad' },
+  { id: 'titulos', nombre: 'Títulos', ic: '📰', color: '#f59e0b', miembros: ['Titular'], con: ['Gemini'], hab: ['titulo-gancho', 'plan-de-portada'], pos: [3, 2], desc: 'Título que dice de qué va y engancha' },
+  { id: 'direccion', nombre: 'Dirección', ic: '🎬', color: '#ec4899', miembros: ['Director de animación', 'Director'], con: ['Gemini', 'Remotion'], hab: ['escenas', 'planos', 'reparto', 'pausas'], pos: [3, 3], desc: 'Decide qué se ve en cada frase' },
+  { id: 'escenografia', nombre: 'Escenografía', ic: '🎨', color: '#06b6d4', miembros: ['Escenógrafo'], con: ['Gemini', 'Remotion'], hab: ['dibujar-fondos', 'dibujar-objetos', 'animar-detalles'], pos: [2, 3], desc: 'Dibuja cada fondo a medida' },
+  { id: 'sonido', nombre: 'Sonido', ic: '🎧', color: '#6366f1', miembros: ['Diseñador de sonido', 'Revisor de sonido'], con: ['Voz Álvaro', 'Gemini'], hab: ['voz', 'golpes', 'escuchar-mezcla'], pos: [1, 3], desc: 'Voz y golpes que pegan' },
+  { id: 'revision', nombre: 'Revisión', ic: '🖼️', color: '#84cc16', miembros: ['Revisor de fotogramas', 'Revisor de imágenes'], con: ['Gemini'], hab: ['mirar-fotogramas', 'pedir-arreglos', 'redibujar'], pos: [0, 3], desc: 'Mira el vídeo como en el móvil' },
+  { id: 'portada', nombre: 'Portada', ic: '🏷️', color: '#f97316', miembros: ['Revisor de portada'], con: ['Gemini', 'Remotion'], hab: ['dibujar-portada', 'elegir-la-mejor'], pos: [0, 2], desc: 'La portada que hace pulsar' },
+  { id: 'redes', nombre: 'Redes', ic: '📣', color: '#0ea5e9', miembros: ['Community manager'], con: ['YouTube', 'Instagram'], hab: ['textos-por-red', 'comentario-fijado', 'publicar'], pos: [0, 1], desc: 'Textos y publicación en cada red' },
 ];
 const EQ_DE = {}; EQ.forEach((e) => e.miembros.forEach((m) => (EQ_DE[m] = e)));
-const equipoDe = (agente) => EQ_DE[agente] || null;
+const eqDe = (a) => EQ_DE[a] || null;
+const S = { act: [], panel: null, lecs: 0, pend: 0, vista: 'oficina', abierta: null, replay: false };
 
-const S = { act: [], panel: null, lecs: 0, lecsHoy: 0, pend: 0, vista: 'oficina', abierta: null };
+// ---------- escena 3D ----------
+const cont = $('mundo');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputColorSpace = THREE.SRGBColorSpace;
+cont.append(renderer.domElement);
+const labels = new CSS2DRenderer(); labels.setSize(innerWidth, innerHeight); labels.domElement.className = 'css2d'; document.body.append(labels.domElement);
+const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0b0f1d, 90, 190);
+const movil = () => innerWidth < 700;
+const camera = new THREE.PerspectiveCamera(movil() ? 50 : 34, innerWidth / innerHeight, 0.5, 400);
+const vista0 = () => ({ pos: movil() ? new THREE.Vector3(48, 78, 62) : new THREE.Vector3(40, 46, 50), tgt: new THREE.Vector3(0, 0, movil() ? 6 : 2) });
+camera.position.copy(vista0().pos);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(vista0().tgt); controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = 1.25; controls.minDistance = 12; controls.maxDistance = 150;
+controls.autoRotate = !reduce; controls.autoRotateSpeed = .35;
+controls.addEventListener('start', () => { controls.autoRotate = false; $('giro').classList.remove('on'); objetivo = null; });
 
-// ---------- dibujo isométrico ----------
-// vista casi cenital (como una maqueta vista desde arriba y un poco de frente): llena la pantalla del móvil
-const K = 10;
-const P = (x, y, z = 0) => [x * K + y * K * 0.18, y * K * 0.78 - z * K * 0.7];
-const pts = (arr) => arr.map((p) => P(...p).map((n) => n.toFixed(1)).join(',')).join(' ');
-const CEL = 12, PASO = 14; // tamaño de sala y paso entre salas
-const aclara = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; const f = (c) => Math.round(c + (255 - c) * k); return `rgb(${f(r)},${f(g)},${f(b)})`; };
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a1f33, 1.1));
+const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(25, 45, 18); sol.castShadow = true;
+sol.shadow.mapSize.set(1536, 1536); Object.assign(sol.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 120 }); sol.shadow.bias = -0.0006; scene.add(sol);
 
-function caja(g, x, y, z, w, d, hh, top, l, r) {
-  sv('polygon', { points: pts([[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + hh], [x, y + d, z + hh]]), fill: l }, g);
-  sv('polygon', { points: pts([[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + hh], [x + w, y, z + hh]]), fill: r }, g);
-  sv('polygon', { points: pts([[x, y, z + hh], [x + w, y, z + hh], [x + w, y + d, z + hh], [x, y + d, z + hh]]), fill: top }, g);
+const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .75, metalness: .05, ...o });
+const caja = (w, hgt, d, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, hgt, d), mat); m.castShadow = true; m.receiveShadow = true; return m; };
+const CEL = 10, PASO = 12.5, OFF = -PASO * 1.5;
+const posSala = (e) => new THREE.Vector3(OFF + e.pos[0] * PASO, 0, OFF + e.pos[1] * PASO);
+
+const base = caja(PASO * 4 + 4, .6, PASO * 4 + 4, M(0xf4f6fb)); base.position.y = -.35; scene.add(base);
+const borde = new THREE.Mesh(new THREE.BoxGeometry(PASO * 4 + 4.4, .3, PASO * 4 + 4.4), M(0xff6a1a, { emissive: 0xff6a1a, emissiveIntensity: .5 })); borde.position.y = -.62; scene.add(borde);
+
+const salas = {}, clicables = [];
+function persona(color) {
+  const g = new THREE.Group();
+  const cuerpo = new THREE.Mesh(new THREE.CapsuleGeometry(.32, .55, 4, 10), M(color)); cuerpo.position.y = 1.15; cuerpo.castShadow = true;
+  const cab = new THREE.Mesh(new THREE.SphereGeometry(.3, 18, 14), M(0xf3d6b4)); cab.position.y = 1.85; cab.castShadow = true;
+  const pelo = new THREE.Mesh(new THREE.SphereGeometry(.31, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), M(0x2a1d14)); pelo.position.y = 1.9;
+  g.add(cuerpo, cab, pelo); g.userData = { cuerpo, cab };
+  return g;
 }
-function persona(g, x, y, color, activo) {
-  const [px, py] = P(x, y, 0);
-  const p = sv('g', { class: activo ? 'bob' : '' }, g);
-  sv('line', { x1: px, y1: py - 2, x2: px, y2: py - 15, stroke: color, 'stroke-width': 6, 'stroke-linecap': 'round' }, p);
-  sv('circle', { cx: px, cy: py - 21, r: 5, fill: '#f3d6b4', stroke: '#15111c', 'stroke-width': 1.2 }, p);
-  sv('path', { d: `M${px - 5} ${py - 22} a5 5 0 0 1 10 -1 q-5 -2 -10 1z`, fill: '#2a1d14' }, p);
-}
-let svg, vb0, salasG = {};
-function dibujar() {
-  const cont = $('escena'); cont.replaceChildren();
-  svg = sv('svg', { 'aria-label': 'Oficina de agentes', preserveAspectRatio: 'xMidYMin meet' }); cont.append(svg);
-  const defs = sv('defs', {}, svg);
-  const rg = sv('radialGradient', { id: 'iris' }, defs); sv('stop', { offset: '0', 'stop-color': '#1e3a8a' }, rg); sv('stop', { offset: '.55', 'stop-color': '#60a5fa' }, rg); sv('stop', { offset: '1', 'stop-color': '#dbeafe' }, rg);
-  const W = PASO * 4;
-  // suelo general
-  sv('polygon', { points: pts([[-2, -2], [W, -2], [W, W], [-2, W]]), fill: '#ffffff', stroke: '#d6dbe6' }, svg);
-  const lineas = sv('g', {}, svg);
-  const cx = PASO * 2 - 1, cy = PASO * 2 - 1;
-  salasG = {};
-  for (const e of EQ) {
-    const x0 = e.pos[0] * PASO, y0 = e.pos[1] * PASO, act = trabajando(e);
-    const c = P(x0 + CEL / 2, y0 + CEL / 2), cc = P(cx, cy);
-    const path = sv('path', { d: `M${c[0]} ${c[1]} L${cc[0]} ${cc[1]}`, stroke: act ? e.color : '#c9d0de', 'stroke-width': act ? 1.6 : 0.8, 'stroke-dasharray': act ? '' : '3 4', fill: 'none', opacity: act ? .9 : .6 }, lineas);
-    if (act) { // paquetes de datos que viajan al cerebro
-      for (let k = 0; k < 2; k++) { const d = sv('circle', { r: 2.6, fill: e.color }, lineas); const am = sv('animateMotion', { dur: '2.4s', repeatCount: 'indefinite', begin: `${k * 1.2}s`, path: path.getAttribute('d') }, d); }
+function sala(e) {
+  const g = new THREE.Group(); g.position.copy(posSala(e)); scene.add(g);
+  const col = new THREE.Color(e.color), claro = col.clone().lerp(new THREE.Color(0xffffff), .78);
+  const suelo = caja(CEL, .25, CEL, M(claro)); suelo.position.y = .12; suelo.userData.eq = e.id; g.add(suelo); clicables.push(suelo);
+  const pared = M(0xffffff);
+  const p1 = caja(CEL, 2.4, .25, pared); p1.position.set(0, 1.45, -CEL / 2); g.add(p1);
+  const p2 = caja(.25, 2.4, CEL, pared); p2.position.set(-CEL / 2, 1.45, 0); g.add(p2);
+  const franja = caja(CEL, .18, .3, M(col, { emissive: col, emissiveIntensity: .35 })); franja.position.set(0, 2.7, -CEL / 2); g.add(franja);
+  const franja2 = caja(.3, .18, CEL, M(col, { emissive: col, emissiveIntensity: .35 })); franja2.position.set(-CEL / 2, 2.7, 0); g.add(franja2);
+  const cuadro = caja(2, 1.3, .08, M(col.clone().lerp(new THREE.Color(0x222244), .3))); cuadro.position.set(2.6, 1.7, -CEL / 2 + .18); g.add(cuadro);
+  const est = caja(.6, 2, 2.4, M(0x8a5a2b)); est.position.set(-CEL / 2 + .5, 1.1, 2.6); g.add(est);
+  for (let k = 0; k < 4; k++) { const l = caja(.45, .5, .18, M([0xc0392b, 0x2e8b57, 0xf2c14e, 0x3e6fb0][k])); l.position.set(-CEL / 2 + .55, 2.35, 1.8 + k * .3); g.add(l); }
+  const maceta = new THREE.Mesh(new THREE.CylinderGeometry(.35, .28, .6, 12), M(0xc8794a)); maceta.position.set(CEL / 2 - .9, .55, CEL / 2 - .9); maceta.castShadow = true; g.add(maceta);
+  const hojas = new THREE.Mesh(new THREE.IcosahedronGeometry(.7, 0), M(0x3f8f4a, { flatShading: true })); hojas.position.set(CEL / 2 - .9, 1.35, CEL / 2 - .9); hojas.castShadow = true; g.add(hojas);
+  const reales = e.miembros.filter((m) => !['Director', 'Revisor de imágenes'].includes(m));
+  const n = reales.length + 1, gente = [], pantallas = [];
+  for (let k = 0; k < n; k++) {
+    const x = n === 1 ? 0 : -2.4 + k * (4.8 / (n - 1)), z = -1.8;
+    const mesa = caja(2.3, .12, 1.3, M(0xf4f1ea)); mesa.position.set(x, .95, z); g.add(mesa);
+    [[-1, -.5], [1, -.5], [-1, .5], [1, .5]].forEach(([dx, dz]) => { const pata = caja(.08, .85, .08, M(0x9aa0aa)); pata.position.set(x + dx, .5, z + dz); g.add(pata); });
+    const mon = caja(1.3, .8, .08, M(0x23262f)); mon.position.set(x, 1.6, z - .35); g.add(mon);
+    const pant = new THREE.Mesh(new THREE.PlaneGeometry(1.18, .68), new THREE.MeshStandardMaterial({ color: 0x0f1424, emissive: col, emissiveIntensity: .08 }));
+    pant.position.set(x, 1.6, z - .3); g.add(pant); pantallas.push(pant);
+    const pie = caja(.1, .3, .1, M(0x23262f)); pie.position.set(x, 1.15, z - .35); g.add(pie);
+    if (k < reales.length) {
+      const silla = caja(.8, .12, .8, M(0x2f3a55)); silla.position.set(x, .7, z + 1.15); g.add(silla);
+      const resp = caja(.8, .9, .12, M(0x2f3a55)); resp.position.set(x, 1.15, z + 1.55); g.add(resp);
+      const p = persona(e.color); p.position.set(x, -.1, z + 1.1); p.rotation.y = Math.PI; g.add(p); gente.push(p);
     }
-    const g = sv('g', { class: 'sala', tabindex: 0, role: 'button', 'aria-label': e.nombre }, svg);
-    salasG[e.id] = g;
-    g.addEventListener('click', () => abrir(e.id)); g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') abrir(e.id); });
-    sv('polygon', { class: 'suelo', points: pts([[x0, y0], [x0 + CEL, y0], [x0 + CEL, y0 + CEL], [x0, y0 + CEL]]), fill: aclara(e.color, .72), stroke: act ? e.color : '#cfd5e2', 'stroke-width': act ? 2 : 1 }, g);
-    // paredes del fondo
-    sv('polygon', { points: pts([[x0, y0, 0], [x0 + CEL, y0, 0], [x0 + CEL, y0, 3.2], [x0, y0, 3.2]]), fill: '#f7f8fb', stroke: '#d6dbe6', 'stroke-width': .6 }, g);
-    sv('polygon', { points: pts([[x0, y0, 0], [x0, y0 + CEL, 0], [x0, y0 + CEL, 3.2], [x0, y0, 3.2]]), fill: '#eceff5', stroke: '#d6dbe6', 'stroke-width': .6 }, g);
-    sv('polygon', { points: pts([[x0, y0, 3.2], [x0 + CEL, y0, 3.2], [x0 + CEL, y0, 3.6], [x0, y0, 3.6]]), fill: e.color }, g);
-    // cuadro y planta
-    const q = P(x0 + CEL * .7, y0, 2.4); sv('rect', { x: q[0] - 6, y: q[1] - 4, width: 12, height: 8, fill: aclara(e.color, .3), stroke: '#555', 'stroke-width': .6, transform: `skewY(30) translate(0 ${-q[0] * 0.577})` }, g);
-    caja(g, x0 + CEL - 2, y0 + CEL - 2, 0, 1.2, 1.2, 1, '#c8794a', '#a8613a', '#b86d42'); const pl = P(x0 + CEL - 1.4, y0 + CEL - 1.4, 1.4); sv('circle', { cx: pl[0], cy: pl[1] - 3, r: 5, fill: '#3f8f4a' }, g);
-    // mesas con monitor: una por miembro (+1 vacía)
-    const n = Math.max(2, e.miembros.filter((m) => !['Director', 'Revisor de imágenes'].includes(m)).length + 1);
-    for (let k = 0; k < n; k++) {
-      const mx = x0 + 1.5 + k * (CEL - 3) / n, my = y0 + 2.2;
-      caja(g, mx, my, 0, 3, 1.6, 1.1, '#f4f1ea', '#d9d2c4', '#e6e0d3');
-      caja(g, mx + .9, my + .2, 1.1, 1.4, .25, 1.1, '#2a2a32', '#1f1f26', '#2a2a32');
-      const s1 = P(mx + .95, my + .45, 1.25), s2 = P(mx + 2.25, my + .45, 2.1);
-      const enc = act && k === 0;
-      sv('polygon', { class: 'pant' + (enc ? ' on' : ''), points: pts([[mx + .95, my + .46, 1.2], [mx + 2.25, my + .46, 1.2], [mx + 2.25, my + .46, 2.1], [mx + .95, my + .46, 2.1]]), fill: enc ? '#9fe3ff' : '#3a4256' }, g);
-      // silla y persona (solo los miembros reales)
-      if (k < n - 1) { caja(g, mx + 1, my + 3, 0, 1, 1, .6, '#2f3a55', '#232b40', '#29324a'); persona(g, mx + 1.5, my + 3.4, e.color, enc); }
-    }
-    // cartel con el nombre
-    const t = P(x0 + 1, y0 - .5, 4.2);
-    const lg = sv('g', {}, g);
-    const tw = 12 + e.nombre.length * 6.4;
-    sv('rect', { x: t[0] - 4, y: t[1] - 12, width: tw, height: 17, rx: 8, fill: '#ffffff', stroke: act ? e.color : '#d6dbe6' }, lg);
-    sv('circle', { cx: t[0] + 5, cy: t[1] - 3.5, r: 3.2, fill: e.color }, lg);
-    const tx = sv('text', { x: t[0] + 12, y: t[1] + .5, 'font-size': 10.5, 'font-weight': 700, fill: '#1c1a17', 'font-family': 'Figtree' }, lg); tx.textContent = e.nombre;
-    if (act) { const ch = sv('text', { x: t[0] + tw - 2, y: t[1] - 14, 'font-size': 12 }, lg); ch.textContent = '💬'; }
   }
-  // cerebro en el centro
-  const cg = sv('g', { class: 'sala', role: 'button', 'aria-label': 'Cerebro' }, svg);
-  cg.addEventListener('click', () => cambiarVista('cerebro'));
-  sv('polygon', { points: pts([[PASO, PASO], [PASO * 3 - 2, PASO], [PASO * 3 - 2, PASO * 3 - 2], [PASO, PASO * 3 - 2]]), fill: '#fbfbfd', stroke: '#e1e5ee' }, cg);
-  const o = P(cx, cy, 5);
-  sv('ellipse', { cx: o[0], cy: P(cx, cy, 0)[1], rx: 34, ry: 12, fill: 'rgba(0,0,0,.08)' }, cg);
-  sv('circle', { cx: o[0], cy: o[1], r: 30, fill: '#ffffff', stroke: '#d6dbe6', 'stroke-width': 2 }, cg);
-  const ojo = sv('g', { class: 'ojo' }, cg);
-  sv('circle', { cx: o[0], cy: o[1], r: 15, fill: 'url(#iris)' }, ojo); sv('circle', { cx: o[0], cy: o[1], r: 6, fill: '#0b1020' }, ojo); sv('circle', { cx: o[0] - 4, cy: o[1] - 5, r: 2.5, fill: '#fff' }, ojo);
-  const tc = P(cx - 3, cy - 3, 9); const tt = sv('text', { x: o[0], y: o[1] - 40, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 800, fill: '#1c1a17', 'font-family': 'Figtree' }, cg); tt.textContent = 'CEREBRO';
-  // encuadre
-  const b = svg.getBBox(); vb0 = [b.x - 10, b.y - 20, b.width + 20, b.height + 30];
-  svg.setAttribute('viewBox', vb0.join(' '));
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(4.6, 40), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false }));
+  halo.rotation.x = -Math.PI / 2; halo.position.y = .27; g.add(halo);
+  const luz = new THREE.PointLight(col, 0, 14, 1.6); luz.position.set(0, 4, 0); g.add(luz);
+  const tag = h('div', 'tag'); tag.style.setProperty('--c', e.color); tag.innerHTML = `<i style="background:${e.color}"></i>${e.ic} ${e.nombre}`;
+  tag.addEventListener('click', () => abrir(e.id));
+  const t2 = new CSS2DObject(tag); t2.position.set(0, 4.2, -CEL / 2); g.add(t2);
+  const bur = h('div', 'burbuja'); bur.style.setProperty('--c', e.color);
+  const b2 = new CSS2DObject(bur); b2.position.set(1.5, 2.2, CEL / 2 + 1); g.add(b2);
+  salas[e.id] = { e, g, gente, pantallas, halo, luz, tag, bur, activo: 0, on: false };
 }
-function zoom(to, ms = 450) {
-  const from = svg.getAttribute('viewBox').split(' ').map(Number), t0 = performance.now();
-  const paso = (t) => { const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-    svg.setAttribute('viewBox', from.map((f, i) => f + (to[i] - f) * e).join(' ')); if (k < 1) requestAnimationFrame(paso); };
-  requestAnimationFrame(paso);
-}
+EQ.forEach(sala);
 
-// ---------- datos ----------
+// cerebro: esfera con ojo, anillos y halo
+const cerebro = new THREE.Group(); scene.add(cerebro);
+const plat = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 10.2, .5, 64), M(0xffffff)); plat.position.y = .25; plat.receiveShadow = true; cerebro.add(plat);
+const aro = new THREE.Mesh(new THREE.TorusGeometry(9.6, .08, 8, 96), new THREE.MeshBasicMaterial({ color: 0xff6a1a })); aro.rotation.x = Math.PI / 2; aro.position.y = .55; cerebro.add(aro);
+const ojo = new THREE.Group(); ojo.position.y = 5.2; cerebro.add(ojo);
+const globo = new THREE.Mesh(new THREE.SphereGeometry(3.2, 48, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .25, metalness: .1, emissive: 0x223355, emissiveIntensity: .2 })); globo.castShadow = true;
+const iris = new THREE.Mesh(new THREE.SphereGeometry(1.75, 32, 24), new THREE.MeshStandardMaterial({ color: 0x3b82f6, emissive: 0x2563eb, emissiveIntensity: .7, roughness: .3 })); iris.position.z = 1.75; iris.scale.z = .55;
+const pupila = new THREE.Mesh(new THREE.SphereGeometry(.85, 24, 16), new THREE.MeshBasicMaterial({ color: 0x070a14 })); pupila.position.z = 2.62; pupila.scale.z = .4;
+const reflejo = new THREE.Mesh(new THREE.SphereGeometry(.22, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })); reflejo.position.set(-.45, .5, 2.95);
+ojo.add(globo, iris, pupila, reflejo); ojo.rotation.x = .18;
+const anillos = [0, 1].map((k) => { const r = new THREE.Mesh(new THREE.TorusGeometry(4.3 + k * .8, .06, 8, 120), new THREE.MeshBasicMaterial({ color: k ? 0xff6a1a : 0x60a5fa, transparent: true, opacity: .8 })); r.position.y = 5.2; cerebro.add(r); return r; });
+const brillo = new THREE.PointLight(0x60a5fa, 6, 22, 1.5); brillo.position.y = 5.2; cerebro.add(brillo);
+const tc = h('div', 'tag'); tc.style.setProperty('--c', '#60a5fa'); tc.innerHTML = '<i style="background:#60a5fa"></i>🧠 Cerebro'; tc.addEventListener('click', () => cambiarVista('cerebro'));
+const tco = new CSS2DObject(tc); tco.position.set(0, 10.4, 0); cerebro.add(tco);
+
+// tuberías curvas de cada sala al cerebro, con paquetes de datos
+const tubos = {};
+EQ.forEach((e) => {
+  const a = posSala(e).add(new THREE.Vector3(0, 2.8, 0)), b = new THREE.Vector3(0, 5.2, 0);
+  const mid = a.clone().lerp(b, .5); mid.y = 9;
+  const curva = new THREE.QuadraticBezierCurve3(a, mid, b);
+  const tubo = new THREE.Mesh(new THREE.TubeGeometry(curva, 40, .05, 6), new THREE.MeshBasicMaterial({ color: e.color, transparent: true, opacity: .12 }));
+  scene.add(tubo);
+  const pq = [0, 1, 2].map(() => { const s = new THREE.Mesh(new THREE.SphereGeometry(.22, 10, 8), new THREE.MeshBasicMaterial({ color: e.color })); s.visible = false; scene.add(s); return s; });
+  tubos[e.id] = { curva, tubo, pq };
+});
+// documentos que vuelan de una sala a otra cuando pasa el trabajo
+const vuelos = [];
+function pasarTrabajo(de, a) {
+  if (!de || !a || de === a) return;
+  const p0 = posSala(salas[de].e).add(new THREE.Vector3(0, 2.4, 0)), p1 = posSala(salas[a].e).add(new THREE.Vector3(0, 2.4, 0));
+  const mid = p0.clone().lerp(p1, .5); mid.y = 10;
+  const doc = new THREE.Mesh(new THREE.BoxGeometry(1.1, .08, 1.5), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: new THREE.Color(salas[a].e.color), emissiveIntensity: .9 }));
+  scene.add(doc); vuelos.push({ doc, curva: new THREE.QuadraticBezierCurve3(p0, mid, p1), t: 0 });
+}
+// partículas de ambiente
+const pg = new THREE.BufferGeometry(); const pp = new Float32Array(600 * 3);
+for (let i = 0; i < 600; i++) { pp[i * 3] = (Math.random() - .5) * 200; pp[i * 3 + 1] = Math.random() * 60 + 5; pp[i * 3 + 2] = (Math.random() - .5) * 200; }
+pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
+const polvo = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0x8fa8ff, size: .3, transparent: true, opacity: .55 })); scene.add(polvo);
+
+// ---------- estado de cada sala ----------
+const ultimoDe = (e) => S.act.find((a) => eqDe(a.agente) === e);
+const hoy = () => S.act.filter((a) => new Date(a.at) >= inicioHoy());
 function trabajando(e) {
-  const ult = S.act.find((a) => equipoDe(a.agente) === e);
-  if (!ult) return false;
-  const reciente = Date.now() - new Date(ult.at) < (e.id === 'explorador' ? 15 : 10) * 60e3;
-  if (e.id === 'explorador') return reciente;
-  const cur = S.panel && S.panel.current, ultimoGlobal = S.act.find((a) => equipoDe(a.agente) && equipoDe(a.agente).id !== 'explorador');
-  return !!cur && reciente && ultimoGlobal && equipoDe(ultimoGlobal.agente) === e;
+  const u = ultimoDe(e); if (!u) return false;
+  const min = (Date.now() - new Date(u.at)) / 60e3;
+  if (e.id === 'explorador') return min < 15;
+  const glob = S.act.find((a) => eqDe(a.agente) && eqDe(a.agente).id !== 'explorador');
+  return !!(S.panel && S.panel.current) && min < 12 && glob && eqDe(glob.agente) === e;
 }
-const hoy = () => S.act.filter((a) => new Date(a.at) >= hoyIni());
-function usosHoy(e) { return hoy().filter((a) => equipoDe(a.agente) === e).length; }
-function chispa(e) { // usos por hora (últimas 12 h)
-  const n = Array(12).fill(0), ahora = Date.now();
-  S.act.forEach((a) => { if (equipoDe(a.agente) !== e) return; const hh = Math.floor((ahora - new Date(a.at)) / 3600e3); if (hh < 12) n[11 - hh]++; });
-  const m = Math.max(1, ...n), w = 80, hh = 20;
-  return `<svg width="${w}" height="${hh}" viewBox="0 0 ${w} ${hh}"><polyline fill="none" stroke="${e.color}" stroke-width="1.6" points="${n.map((v, i) => `${(i / 11 * w).toFixed(1)},${(hh - 2 - v / m * (hh - 4)).toFixed(1)}`).join(' ')}"/></svg>`;
+function actualizar() {
+  let n = 0;
+  EQ.forEach((e) => {
+    const s = salas[e.id], on = S.replay ? s.activo > 0 : (trabajando(e) || s.activo > 0); if (on) n++;
+    s.on = on; s.tag.classList.toggle('on', on);
+    const u = S.replay ? s.msg : ultimoDe(e);
+    if (u && on) { s.bur.innerHTML = ''; s.bur.append(h('b', null, e.nombre), document.createTextNode(' · ' + String(u.texto).slice(0, 110))); s.bur.classList.add('on'); } else s.bur.classList.remove('on');
+  });
+  $('ntrab').textContent = `${n} trabajando`;
+  $('sub').textContent = `${EQ.length} equipos · ${S.lecs} lecciones · ${hoy().length} tareas hoy`;
 }
 
-// ---------- ficha de una sala ----------
+// ---------- animación ----------
+const reloj = new THREE.Clock(); let objetivo = null;
+function animar() {
+  requestAnimationFrame(animar);
+  const dt = Math.min(.05, reloj.getDelta()), t = reloj.elapsedTime;
+  let mirar = null, cambio = false;
+  EQ.forEach((e) => {
+    const s = salas[e.id], on = s.on;
+    s.halo.material.opacity += ((on ? .28 + .08 * Math.sin(t * 3) : 0) - s.halo.material.opacity) * .08;
+    s.luz.intensity += ((on ? 9 : 0) - s.luz.intensity) * .08;
+    s.pantallas.forEach((p, i) => { p.material.emissiveIntensity = on && i === 0 ? .9 + .3 * Math.sin(t * 9 + i) : .1; });
+    s.gente.forEach((p, i) => { const k = on && i === 0 ? 1 : 0; p.userData.cuerpo.position.y = 1.15 + Math.sin(t * (k ? 14 : 2) + i) * (k ? .04 : .015); p.userData.cab.rotation.y = Math.sin(t * .7 + i) * (k ? .1 : .35); });
+    const tb = tubos[e.id]; tb.tubo.material.opacity += ((on ? .55 : .12) - tb.tubo.material.opacity) * .06;
+    tb.pq.forEach((q, i) => { q.visible = on; if (on) q.position.copy(tb.curva.getPoint((t * .45 + i / 3) % 1)); });
+    if (on && !mirar) mirar = posSala(e);
+    if (s.activo > 0) { s.activo -= dt; if (s.activo <= 0 && !S.replay) cambio = true; }
+  });
+  if (cambio) actualizar();
+  if (mirar) { const obj = Math.atan2(mirar.x, mirar.z); let d = obj - ojo.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); ojo.rotation.y += d * .05; } else ojo.rotation.y += dt * .25;
+  anillos[0].rotation.x = t * .6; anillos[0].rotation.y = t * .3; anillos[1].rotation.z = t * .45; anillos[1].rotation.x = Math.PI / 2 + Math.sin(t * .4) * .4;
+  ojo.position.y = 5.2 + Math.sin(t * 1.2) * .25; brillo.intensity = 5 + Math.sin(t * 2) * 1.5;
+  polvo.rotation.y = t * .01;
+  for (let i = vuelos.length - 1; i >= 0; i--) { const v = vuelos[i]; v.t += dt / 1.4; v.doc.position.copy(v.curva.getPoint(Math.min(1, v.t))); v.doc.rotation.y += dt * 4; if (v.t >= 1) { scene.remove(v.doc); vuelos.splice(i, 1); } }
+  if (objetivo) { camera.position.lerp(objetivo.pos, .06); controls.target.lerp(objetivo.tgt, .06); if (camera.position.distanceTo(objetivo.pos) < .2) objetivo = null; }
+  controls.update(); renderer.render(scene, camera); labels.render(scene, camera);
+}
+animar();
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.fov = movil() ? 50 : 34; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); labels.setSize(innerWidth, innerHeight); });
+
+// tocar una sala
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let bajo = null;
+renderer.domElement.addEventListener('pointerdown', (ev) => { bajo = [ev.clientX, ev.clientY]; });
+renderer.domElement.addEventListener('pointerup', (ev) => {
+  if (!bajo || Math.hypot(ev.clientX - bajo[0], ev.clientY - bajo[1]) > 6) return;
+  ptr.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(clicables)[0]; if (hit) abrir(hit.object.userData.eq);
+});
+function volarA(e) {
+  const p = posSala(e);
+  objetivo = movil() ? { pos: new THREE.Vector3(p.x + 14, 22, p.z + 26), tgt: new THREE.Vector3(p.x, -6, p.z + 2) }
+                     : { pos: new THREE.Vector3(p.x + 13, 15, p.z + 15), tgt: new THREE.Vector3(p.x + 3, 1, p.z) };
+  controls.autoRotate = false; $('giro').classList.remove('on');
+}
+const aCasa = () => { const v = vista0(); objetivo = { pos: v.pos, tgt: v.tgt }; };
+$('centro').onclick = () => { cerrar(); aCasa(); };
+$('giro').onclick = () => { controls.autoRotate = !controls.autoRotate; $('giro').classList.toggle('on', controls.autoRotate); };
+
+// ---------- ficha de un equipo ----------
+function chispa(e) {
+  const n = Array(24).fill(0), ahora = Date.now();
+  S.act.forEach((a) => { if (eqDe(a.agente) !== e) return; const k = Math.floor((ahora - new Date(a.at)) / 3600e3); if (k < 24) n[23 - k]++; });
+  const m = Math.max(1, ...n), w = 96, hh = 24, P = n.map((v, i) => `${(i / 23 * w).toFixed(1)},${(hh - 2 - v / m * (hh - 4)).toFixed(1)}`).join(' ');
+  return `<svg width="100%" height="${hh}" viewBox="0 0 ${w} ${hh}" preserveAspectRatio="none"><polygon fill="${e.color}22" points="0,${hh} ${P} ${w},${hh}"/><polyline fill="none" stroke="${e.color}" stroke-width="1.6" points="${P}"/></svg>`;
+}
 function abrir(id) {
   const e = EQ.find((x) => x.id === id); if (!e) return;
-  S.abierta = id;
-  const x0 = e.pos[0] * PASO, y0 = e.pos[1] * PASO;
-  const a = P(x0 - 1, y0 - 1, 5), b = P(x0 + CEL + 1, y0 + CEL + 1), l = P(x0 - 1, y0 + CEL + 1), r = P(x0 + CEL + 1, y0 - 1);
-  const minx = Math.min(a[0], l[0]) - 10, maxx = Math.max(b[0], r[0]) + 10, miny = a[1] - 30, maxy = b[1] + 10;
-  // misma proporción que el plano entero y la sala en la mitad de arriba (abajo va la ficha)
-  const asp = vb0[3] / vb0[2];
-  let w = maxx - minx, hh = w * asp;
-  if (maxy - miny > hh * 0.5) { hh = (maxy - miny) / 0.5; w = hh / asp; }
-  const mx = (minx + maxx) / 2;
-  zoom([mx - w / 2, miny - hh * 0.04, w, hh]);
-  ficha();
-  $('hoja').classList.add('on');
+  if (S.vista !== 'oficina') cambiarVista('oficina');
+  S.abierta = id; volarA(e); pintarFicha(); $('ficha').classList.add('on');
 }
-function ficha() {
+function pintarFicha() {
   const e = EQ.find((x) => x.id === S.abierta); if (!e) return;
-  const act = trabajando(e), mis = S.act.filter((a) => equipoDe(a.agente) === e), ult = mis[0];
-  const c = $('hojac'); c.replaceChildren();
-  c.append(h('div', 'eq', `Equipo ${e.nombre} · ${e.miembros.filter((m) => !['Director', 'Revisor de imágenes'].includes(m)).length} agente(s)`));
-  const t = h('div', 'tit'); const av = h('div', 'av', e.ic); av.style.background = e.color + '33'; t.append(av, h('h2', null, e.nombre)); c.append(t);
-  c.append(h('div', 'estado' + (act ? ' on' : ''), act ? `Trabajando · ${ult ? ult.texto.slice(0, 90) : ''}` : `Libre · ${e.desc}`));
+  const on = salas[e.id].on, mis = S.act.filter((a) => eqDe(a.agente) === e), u = mis[0], idx = EQ.indexOf(e);
+  const c = $('fichac'); c.replaceChildren(); c.style.setProperty('--c', e.color);
+  c.append(h('div', 'eq', `Equipo ${String(idx + 1).padStart(2, '0')} · ${e.miembros.filter((m) => !['Director', 'Revisor de imágenes'].includes(m)).join(' + ')}`));
+  const t = h('div', 'tit'), av = h('div', 'av', e.ic); av.style.background = e.color + '30'; av.style.boxShadow = `0 0 24px -6px ${e.color}`;
+  const tx = h('div'); tx.append(h('h2', null, e.nombre), h('p', null, e.desc)); t.append(av, tx); c.append(t);
+  const es = h('div', 'estado' + (on ? ' on' : '')); es.append(h('i'), document.createTextNode(on ? 'Trabajando ahora' : (u ? `Último trabajo a las ${hora(u.at)}` : 'Esperando su turno'))); c.append(es);
+  c.append(h('div', 'sec', 'Su sitio en la cadena'));
+  const cad = h('div', 'cadena'); EQ.forEach((x, i) => cad.append(h('span', i === idx ? 'yo' : (i < idx ? 'hecho' : '')))); c.append(cad);
+  const ct = h('div', 'cadtxt'); ct.append(h('span', null, idx ? `Recibe de ${EQ[idx - 1].nombre}` : 'Alimenta a todos'), h('span', null, idx < EQ.length - 1 ? `Pasa a ${EQ[idx + 1].nombre}` : 'Publica')); c.append(ct);
   c.append(h('div', 'sec', 'Hoy'));
   const kp = h('div', 'kp');
-  const k1 = h('div'); k1.append(h('small', null, 'Usos hoy'), h('b', null, String(usosHoy(e)))); const sp = h('i'); sp.innerHTML = chispa(e); k1.append(sp);
-  const k2 = h('div'); k2.append(h('small', null, 'Trabajando'), h('b', null, act ? '1' : '0'), h('i', null, act ? 'ahora mismo' : 'en espera'));
-  const k3 = h('div'); k3.append(h('small', null, e.id === 'explorador' ? 'Por ver' : 'Encargos'), h('b', null, String(e.id === 'explorador' ? S.pend : (S.panel && S.panel.current ? 1 : 0))), h('i', null, e.id === 'explorador' ? 'Shorts en cola' : 'pendientes'));
+  const k1 = h('div'); k1.append(h('small', null, 'Tareas hoy'), h('b', null, String(hoy().filter((a) => eqDe(a.agente) === e).length))); const sp = h('i'); sp.innerHTML = chispa(e); k1.append(sp);
+  const k2 = h('div'); k2.append(h('small', null, 'Ahora'), h('b', null, on ? '1' : '0'), h('i', null, on ? 'trabajando' : 'libre'));
+  const k3 = h('div'); k3.append(h('small', null, e.id === 'explorador' ? 'Por ver' : '7 días'), h('b', null, String(e.id === 'explorador' ? S.pend : mis.length)), h('i', null, e.id === 'explorador' ? 'Shorts en cola' : 'tareas'));
   kp.append(k1, k2, k3); c.append(kp);
+  if (u) { c.append(h('div', 'sec', on ? 'Haciendo ahora' : 'Lo último')); const p = h('p', null, u.texto); p.style.margin = '0'; p.style.fontSize = '14px'; c.append(p); }
   const s2 = h('div', 'sec'); s2.append(document.createTextNode('Conexiones'), h('em', null, `${e.con.length} activas`)); c.append(s2);
-  const ch = h('div', 'chips'); e.con.forEach((n) => { const s = h('span', null, n); s.append(h('small', null, 'conectada')); ch.append(s); }); c.append(ch);
-  const s3 = h('div', 'sec'); s3.append(document.createTextNode('Habilidades'), h('em', null, act ? '1 en uso' : '')); c.append(s3);
-  const sem = S.act.filter((a) => equipoDe(a.agente) === e && Date.now() - new Date(a.at) < 7 * 864e5).length;
-  e.hab.forEach((nombre, i) => {
-    const row = h('div', 'hab'); const bar = h('div', 'b'), bi = h('i'); bi.style.width = Math.max(8, Math.min(100, (sem / (i + 1)) * 6)) + '%'; bi.style.background = e.color; bar.append(bi);
-    row.append(h('span', null, nombre), bar, h('small', null, act && i === 0 ? 'en uso' : `${Math.round(sem / (i + 1))} sem`)); c.append(row);
+  const ch = h('div', 'chips'); e.con.forEach((n) => { const s = h('span'); s.append(h('i'), document.createTextNode(n)); ch.append(s); }); c.append(ch);
+  const s3 = h('div', 'sec'); s3.append(document.createTextNode('Habilidades'), h('em', null, on ? '1 en uso' : '')); c.append(s3);
+  e.hab.forEach((nm, i) => {
+    const usos = Math.round(mis.length / (i + 1));
+    const row = h('div', 'hab'), bar = h('div', 'b'), bi = h('i'); bi.style.background = e.color; bi.style.width = '0%'; bar.append(bi);
+    requestAnimationFrame(() => (bi.style.width = Math.max(6, Math.min(100, usos * 8)) + '%'));
+    row.append(h('span', null, nm), bar, h('small', null, on && i === 0 ? 'en uso' : `${usos} / sem`)); c.append(row);
   });
-  c.append(h('div', 'sec', 'Lo último que ha hecho'));
+  c.append(h('div', 'sec', 'Historial'));
   const ul = h('ul', 'feed');
-  if (!mis.length) ul.append(h('li', 'vacio', 'Todavía nada. Aparecerá aquí en cuanto trabaje.'));
-  mis.slice(0, 8).forEach((a) => { const li = h('li'); const dot = h('i'); dot.style.background = e.color; const p = h('p', null, a.texto); li.append(dot, p, h('time', null, hora(a.at))); ul.append(li); });
+  if (!mis.length) ul.append(h('li', 'vacio', 'Aún nada: aparecerá aquí en cuanto trabaje.'));
+  mis.slice(0, 10).forEach((a) => { const li = h('li'), d = h('i'); d.style.background = e.color; li.append(d, h('p', null, a.texto), h('time', null, hora(a.at))); ul.append(li); });
   c.append(ul);
 }
-function cerrar() { $('hoja').classList.remove('on'); S.abierta = null; if (vb0) zoom(vb0); }
+function cerrar() { $('ficha').classList.remove('on'); S.abierta = null; }
+$('cerrar').onclick = () => { cerrar(); aCasa(); };
 
-// ---------- otras vistas ----------
-function vistaTareas() {
-  const v = $('v-tareas'); v.replaceChildren();
-  const steps = (S.panel && S.panel.current && S.panel.current.steps) || [];
-  const cuenta = (st) => steps.filter((s) => s.state === st).length;
-  v.append(h('div', 'sec', 'Tablero · hoy'));
-  const tb = h('div', 'tablero');
-  [['Por hacer', cuenta('pendiente')], ['En curso', cuenta('en_curso')], ['Encargos', S.pend], ['Hecho', hoy().length]].forEach(([n, x], i) => { const d = h('div', i === 1 && x ? 'on' : ''); d.append(h('b', null, String(x)), h('small', null, n)); tb.append(d); });
-  v.append(tb);
-  v.append(h('div', 'sec', S.panel && S.panel.current ? 'Vídeo en marcha' : 'Lo último de cada equipo'));
-  const ul = h('ul', 'feed');
-  EQ.forEach((e) => { const u = S.act.find((a) => equipoDe(a.agente) === e); const li = h('li'); const dot = h('i'); dot.style.background = e.color;
-    const p = h('p'); p.append(h('b', null, e.nombre + ' '), document.createTextNode(u ? u.texto.slice(0, 120) : 'sin trabajo todavía')); li.append(dot, p, h('time', null, u ? hora(u.at) : '')); ul.append(li); });
-  v.append(ul);
+// ---------- vistas ----------
+function filaEv(a) {
+  const e = eqDe(a.agente), li = h('li'), d = h('i'); d.style.background = e ? e.color : '#888';
+  const p = h('p'); p.append(h('b', null, (e ? e.nombre : a.agente) + ' '), document.createTextNode(a.texto)); li.append(d, p, h('time', null, hora(a.at)));
+  if (e) { li.style.cursor = 'pointer'; li.onclick = () => abrir(e.id); }
+  return li;
 }
-function vistaActividad() {
-  const v = $('v-actividad'); v.replaceChildren(); v.append(h('div', 'sec', 'Actividad en directo'));
-  const ul = h('ul', 'feed');
-  if (!S.act.length) ul.append(h('li', 'vacio', 'Aún no hay actividad.'));
-  S.act.slice(0, 80).forEach((a) => { const e = equipoDe(a.agente); const li = h('li'); const dot = h('i'); dot.style.background = e ? e.color : '#888';
-    const p = h('p'); p.append(h('b', null, a.agente + ' '), document.createTextNode(a.texto)); li.append(dot, p, h('time', null, hora(a.at))); ul.append(li); });
-  v.append(ul);
-}
-async function vistaCerebro() {
-  const v = $('v-cerebro'); v.replaceChildren();
-  v.append(h('div', 'sec', 'El cerebro'));
-  const kp = h('div', 'kp');
-  [['Notas', S.lecs, 'lecciones activas'], ['Alimentado hoy', hoy().length, 'cosas nuevas'], ['Equipos', EQ.length, '+ cerebro']].forEach(([a, b, c]) => { const d = h('div'); d.append(h('small', null, a), h('b', null, String(b)), h('i', null, c)); kp.append(d); });
-  v.append(kp);
-  v.append(h('p', 'vacio', 'La memoria de todos los equipos: lo que cada uno hace queda escrito aquí, y lo que aprende el Explorador lo usan los demás.'));
-  const { data } = await sb.from('aprendizajes').select('para, texto').eq('activo', true).order('creado_at', { ascending: false }).limit(15);
-  v.append(h('div', 'sec', 'Lo que saben ahora'));
-  const ul0 = h('ul', 'feed');
-  if (!(data || []).length) ul0.append(h('li', 'vacio', 'Todavía nada: el Explorador empezará a aprender en cuanto tenga sus claves.'));
-  (data || []).forEach((l) => { const li = h('li'); const dot = h('i'); dot.style.background = '#60a5fa'; const p = h('p'); p.append(h('b', null, l.para + ' '), document.createTextNode(l.texto)); li.append(dot, p, h('time')); ul0.append(li); });
-  v.append(ul0);
-  v.append(h('div', 'sec', 'Lo que entró hoy'));
-  const ul = h('ul', 'feed');
-  hoy().slice(0, 30).forEach((a) => { const e = equipoDe(a.agente); const li = h('li'); const dot = h('i'); dot.style.background = e ? e.color : '#888';
-    const p = h('p'); p.append(h('b', null, (e ? e.nombre : a.agente) + ' '), document.createTextNode(a.texto.slice(0, 140))); li.append(dot, p, h('time', null, hora(a.at))); ul.append(li); });
-  if (!hoy().length) ul.append(h('li', 'vacio', 'Nada todavía hoy.'));
-  v.append(ul);
+async function pintarVista() {
+  const v = $('vista'); v.replaceChildren();
+  if (S.vista === 'flujo') {
+    v.append(h('div', 'sec', 'Cómo pasa el trabajo · de arriba abajo'));
+    const f = h('div', 'flujo');
+    EQ.forEach((e, i) => { const u = ultimoDe(e), on = salas[e.id].on, d = h('div', 'paso' + (on ? ' on' : '')); d.style.setProperty('--c', e.color);
+      const av = h('div', 'av', e.ic); av.style.background = e.color + '30'; const tx = h('div'); tx.append(h('b', null, `${i + 1}. ${e.nombre}`), h('p', null, u ? u.texto : e.desc));
+      d.append(av, tx, h('small', null, on ? '● ahora' : (u ? hora(u.at) : '—'))); d.onclick = () => abrir(e.id); f.append(d); });
+    v.append(f);
+  } else if (S.vista === 'actividad') {
+    v.append(h('div', 'sec', 'Todo lo que hacen, en directo')); const ul = h('ul', 'feed');
+    if (!S.act.length) ul.append(h('li', 'vacio', 'Aún no hay actividad. Se irá llenando según trabajen.')); S.act.slice(0, 120).forEach((a) => ul.append(filaEv(a))); v.append(ul);
+  } else if (S.vista === 'cerebro') {
+    v.append(h('div', 'sec', 'El cerebro · la memoria de todos los equipos'));
+    const kp = h('div', 'kp');
+    [['Lecciones', S.lecs, 'aprendidas y activas'], ['Hoy', hoy().length, 'tareas hechas'], ['Por ver', S.pend, 'Shorts en cola']].forEach(([a, b, c]) => { const d = h('div'); d.append(h('small', null, a), h('b', null, String(b)), h('i', null, c)); kp.append(d); });
+    v.append(kp);
+    const { data } = await sb.from('aprendizajes').select('para, texto, fuente').eq('activo', true).order('creado_at', { ascending: false }).limit(20);
+    if (S.vista !== 'cerebro') return;
+    v.append(h('div', 'sec', 'Lo que saben ahora (se aplica solo en cada vídeo)')); const ul0 = h('ul', 'feed');
+    if (!(data || []).length) ul0.append(h('li', 'vacio', 'Todavía nada: el Explorador empezará a aprender en cuanto tenga sus claves.'));
+    (data || []).forEach((l) => { const li = h('li'), d = h('i'); d.style.background = '#60a5fa'; const p = h('p'); p.append(h('b', null, l.para + ' '), document.createTextNode(l.texto)); li.append(d, p, h('time')); ul0.append(li); });
+    v.append(ul0);
+    v.append(h('div', 'sec', 'Lo que entró hoy')); const ul = h('ul', 'feed'); if (!hoy().length) ul.append(h('li', 'vacio', 'Nada todavía hoy.')); hoy().slice(0, 40).forEach((a) => ul.append(filaEv(a))); v.append(ul);
+  }
 }
 function cambiarVista(vv) {
-  S.vista = vv;
-  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === vv));
-  ['oficina', 'tareas', 'actividad', 'cerebro'].forEach((n) => ($('v-' + n).hidden = n !== vv));
-  if (vv !== 'oficina') $('hoja').classList.remove('on');
-  pintar();
+  S.vista = vv; document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === vv));
+  $('vista').hidden = vv === 'oficina'; if (vv !== 'oficina') { cerrar(); pintarVista(); }
 }
-function pintar() {
-  const n = EQ.filter(trabajando).length;
-  $('ntrab').textContent = `${n} trabajando`; $('ntar').textContent = String(hoy().length);
-  if (S.vista === 'oficina') {
-    const vb = svg && svg.getAttribute('viewBox'); dibujar(); if (S.abierta && vb) { svg.setAttribute('viewBox', vb); ficha(); }
-    const ul = $('ahora'); ul.replaceChildren();
-    if (!S.act.length) ul.append(h('li', 'vacio', 'Aún no hay actividad.'));
-    S.act.slice(0, 12).forEach((a) => { const e = equipoDe(a.agente); const li = h('li'); const dot = h('i'); dot.style.background = e ? e.color : '#888';
-      const p = h('p'); p.append(h('b', null, (e ? e.nombre : a.agente) + ' '), document.createTextNode(a.texto.slice(0, 140))); li.append(dot, p, h('time', null, hora(a.at))); ul.append(li); });
-  }
-  if (S.vista === 'tareas') vistaTareas();
-  if (S.vista === 'actividad') vistaActividad();
-  if (S.vista === 'cerebro') vistaCerebro();
+$('tabs').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (b) cambiarVista(b.dataset.v); });
+
+function cinta() {
+  const c = $('cinta'); c.replaceChildren();
+  (S.act.length ? S.act : [{ agente: 'Cerebro', texto: 'Esperando trabajo…', at: new Date().toISOString() }]).slice(0, 12).forEach((a) => {
+    const e = eqDe(a.agente), d = h('div', 'ev'), i = h('i'); i.style.background = e ? e.color : '#60a5fa';
+    d.append(i, h('b', null, e ? e.nombre : a.agente), document.createTextNode(' ' + a.texto.slice(0, 70) + ' '), h('time', null, hora(a.at)));
+    if (e) d.onclick = () => abrir(e.id); c.append(d);
+  });
 }
 
-// ---------- carga y directo ----------
+// ---------- repetición del último vídeo ----------
+$('rep').onclick = async () => {
+  if (S.replay) return;
+  const ev = S.act.filter((a) => eqDe(a.agente) && eqDe(a.agente).id !== 'explorador').slice(0, 40).reverse();
+  if (!ev.length) { $('rep').textContent = 'Aún no hay vídeos'; setTimeout(() => ($('rep').textContent = '▶ Repetición'), 2200); return; }
+  S.replay = true; $('rep').classList.add('on'); $('rep').textContent = '● Repitiendo'; cerrar(); controls.autoRotate = false; $('giro').classList.remove('on');
+  let prev = null; const paso = Math.max(900, Math.min(2400, 30000 / ev.length));
+  for (const a of ev) {
+    const e = eqDe(a.agente), s = salas[e.id];
+    EQ.forEach((x) => (salas[x.id].activo = 0)); s.activo = paso / 1000 + .4; s.msg = a;
+    if (prev && prev !== e.id) pasarTrabajo(prev, e.id);
+    prev = e.id; volarA(e); actualizar();
+    await new Promise((r) => setTimeout(r, paso));
+  }
+  S.replay = false; EQ.forEach((x) => (salas[x.id].activo = 0)); $('rep').classList.remove('on'); $('rep').textContent = '▶ Repetición';
+  aCasa(); actualizar();
+};
+
+// ---------- datos en directo ----------
+function refrescar() { actualizar(); cinta(); if (S.abierta) pintarFicha(); if (S.vista !== 'oficina') pintarVista(); }
 async function cargar() {
   const desde = new Date(Date.now() - 7 * 864e5).toISOString();
   const [a, p, l, t] = await Promise.all([
@@ -351,23 +459,26 @@ async function cargar() {
     sb.from('aprendizajes').select('id', { count: 'exact', head: true }).eq('activo', true),
     sb.from('tendencias').select('video_id', { count: 'exact', head: true }).eq('analizado', false),
   ]);
-  if (p.error || !p.data) { $('login').hidden = false; $('v-oficina').hidden = true; return false; }
+  if (p.error || !p.data) { $('login').hidden = false; return false; }
   S.act = a.data || []; S.panel = p.data.data; S.lecs = l.count || 0; S.pend = t.count || 0;
-  pintar(); return true;
+  refrescar(); return true;
 }
-$('tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiarVista(b.dataset.v); });
-$('cerrar').addEventListener('click', cerrar);
 (async () => {
   const { data } = await sb.auth.getSession();
-  if (!data.session) { $('login').hidden = false; $('v-oficina').hidden = true; return; }
+  if (!data.session) { $('login').hidden = false; return; }
   if (!(await cargar())) return;
   sb.channel('oficina')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'actividad' }, (x) => { S.act.unshift(x.new); pintar(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (x) => { if (x.new && x.new.data) { S.panel = x.new.data; pintar(); } })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'actividad' }, (x) => {
+      const prev = S.act.find((q) => eqDe(q.agente) && eqDe(q.agente).id !== 'explorador'); S.act.unshift(x.new);
+      const a = eqDe(x.new.agente);
+      if (a) { salas[a.id].activo = 6; if (prev && a.id !== 'explorador') pasarTrabajo(eqDe(prev.agente).id, a.id); }
+      refrescar();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (x) => { if (x.new && x.new.data) { S.panel = x.new.data; actualizar(); } })
     .subscribe();
-  setInterval(cargar, 120000);
-  setInterval(() => { if (S.vista === 'oficina') pintar(); }, 60000);
+  setInterval(cargar, 120000); setInterval(actualizar, 30000);
 })();
+window.__oficina = { S, abrir, salas };
 </script>
 </body>
 </html>
