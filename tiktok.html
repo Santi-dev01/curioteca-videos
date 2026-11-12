@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conectar TikTok</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+  :root { --bg: #faf7f2; --fg: #1d1a16; --muted: #6b6258; --acc: #f26a1b; --card: #fff; --line: #e8e0d6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #141210; --fg: #f3ede6; --muted: #a89c90; --card: #1d1a17; --line: #2e2924; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 48px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+  h1 { font-size: 24px; margin: 0 0 8px; }
+  p { color: var(--muted); }
+  button { background: var(--acc); color: #fff; border: 0; border-radius: 12px; padding: 14px 18px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
+  button:disabled { opacity: .6; }
+  .ok { color: #1f9d55; font-weight: 600; } .bad { color: #d23; font-weight: 600; }
+  a { color: var(--acc); }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Conectar TikTok</h1>
+    <p id="txt">Conecta la cuenta de TikTok de Curioteca para que los vídeos lleguen solos a tus borradores de TikTok.</p>
+    <button id="btn" type="button">Conectar con TikTok</button>
+    <p id="msg"></p>
+    <p><a href="./">Volver al panel</a></p>
+  </div>
+</main>
+<script>
+  const sb = supabase.createClient('https://hmnwozowfofdknzdtxsq.supabase.co', 'sb_publishable_r6VlVPL5ww41GdsJvW7EBQ_vRFEG2rW');
+  const $ = (id) => document.getElementById(id);
+  const msg = (t, bad) => { $('msg').textContent = t; $('msg').className = bad ? 'bad' : 'ok'; };
+  async function control(body) {
+    const { data, error } = await sb.functions.invoke('control', { body });
+    if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} throw new Error(m); }
+    return data;
+  }
+  (async () => {
+    const { data: s } = await sb.auth.getSession();
+    if (!s.session) { $('btn').disabled = true; msg('Primero inicia sesión en el panel y vuelve a esta página.', true); return; }
+    const q = new URLSearchParams(location.search);
+    if (q.get('code')) {
+      $('btn').hidden = true; msg('Conectando…');
+      try {
+        const r = await control({ action: 'tiktok_code', code: q.get('code'), state: q.get('state'), redirect: location.origin + location.pathname });
+        $('txt').textContent = 'TikTok conectado. A partir de ahora, cada vídeo que se publique llegará también a tus borradores de TikTok.';
+        msg('Listo ✓ ' + (r.cuenta ? '(' + r.cuenta + ')' : ''));
+        history.replaceState(null, '', location.pathname);
+      } catch (e) { msg('No se pudo conectar: ' + e.message, true); $('btn').hidden = false; }
+      return;
+    }
+    if (q.get('error')) msg('TikTok no dio permiso: ' + (q.get('error_description') || q.get('error')), true);
+    $('btn').addEventListener('click', async () => {
+      $('btn').disabled = true;
+      try { const r = await control({ action: 'tiktok_url', redirect: location.origin + location.pathname }); location.href = r.url; }
+      catch (e) { msg(e.message, true); $('btn').disabled = false; }
+    });
+  })();
+</script>
+</body>
+</html>
