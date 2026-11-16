@@ -599,11 +599,16 @@
       const dt = h('input'); dt.type = 'datetime-local'; dt.value = v.publicar_el && v.estado !== 'listo' ? toLocalInput(v.publicar_el) : ''; dt.setAttribute('aria-label', 'Fecha de publicación');
       dt.addEventListener('change', async () => {
         if (!dt.value) return;
-        const { error } = await sb.from('videos').update({ publicar_el: fromLocalInput(dt.value), estado: 'programado' }).eq('id', v.id);
+        // En el móvil, al tocar el campo vacío el selector pone la hora actual y el vídeo se publicaba al momento
+        // (así salieron 4 vídeos antiguos el 15 nov a las 01:56). Ahora: nada en el pasado ni en los próximos 10 min, y se confirma.
+        const cuando = new Date(fromLocalInput(dt.value));
+        if (!(cuando.getTime() > Date.now() + 10 * 60e3)) { toast('Elige una hora futura (para publicar ahora usa «Publicar ya»)', true); dt.value = v.publicar_el && v.estado !== 'listo' ? toLocalInput(v.publicar_el) : ''; return; }
+        if (!confirm(`¿Programar «${v.titulo}» para el ${cuando.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}?`)) { dt.value = v.publicar_el && v.estado !== 'listo' ? toLocalInput(v.publicar_el) : ''; return; }
+        const { error } = await sb.from('videos').update({ publicar_el: cuando.toISOString(), estado: 'programado' }).eq('id', v.id);
         error ? toast('No se pudo cambiar la fecha', true) : toast('Fecha de publicación cambiada');
       });
       const now = h('button', 'btn sm', 'Publicar ya'); now.type = 'button'; now.disabled = v.estado === 'publicando';
-      now.addEventListener('click', () => callControl({ action: 'publicar', video_id: v.id }, now, 'Publicación lanzada'));
+      now.addEventListener('click', () => { if (confirm(`¿Publicar ahora «${v.titulo}» en todas las redes?`)) callControl({ action: 'publicar', video_id: v.id }, now, 'Publicación lanzada'); });
       // Pausar: deja el vídeo guardado (no se publica solo) hasta que le pongas fecha o pulses «Publicar ya»
       const drop = h('button', 'btn ghost sm', 'Pausar'); drop.type = 'button';
       drop.hidden = v.estado !== 'programado';
