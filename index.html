@@ -254,6 +254,17 @@
     .cal { grid-template-columns: repeat(7, minmax(0, 1fr)); }
     .vids { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   }
+  /* varios canales (17 nov): pestañas Curioteca / Neón Leonida */
+  .canales { display: flex; gap: 8px; margin: 0 0 18px; flex-wrap: wrap; }
+  .canales button { border: 1px solid var(--line-2); background: var(--card); padding: 8px 18px; border-radius: 999px; font: 700 14px var(--body); cursor: pointer; color: var(--dim); }
+  .canales button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .canales button[data-c="neonleonida"].on { background: linear-gradient(135deg, #ff2e97, #7b2ff7); border-color: transparent; }
+  body.neon { --orange: #d81b7a; --orange-soft: #fde8f3; --orange-line: #f7b6d6; --paper: #f4f1fa; }
+  body.neon .logo { background: linear-gradient(135deg, #ff2e97, #7b2ff7); box-shadow: 0 8px 22px -8px rgba(255, 46, 151, .6); }
+  .solo-neon { display: none !important; }
+  body.neon .solo-neon { display: block !important; }
+  body.neon .solo-cur { display: none !important; }
+  .ytok { color: var(--ok); font-weight: 700; } .ytno { color: var(--bad); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -261,15 +272,17 @@
   <header class="top">
     <div class="brand">
       <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M9 8.6c.3-1 1.1-1.5 2-1.5 1.2 0 2 .8 2 1.8 0 1.4-2 1.5-2 2.9"/><circle cx="11" cy="13.6" r=".4" fill="#fff"/></svg></div>
-      <div><h1>Curioteca</h1><small>Centro de mando</small></div>
+      <div><h1 id="marca">Curioteca</h1><small>Centro de mando</small></div>
     </div>
     <div class="tools">
       <div class="live" id="live"><i></i><span id="livetxt">Conectando…</span></div>
-      <a class="btn ghost" href="oficina.html" id="btnofi">🏢 Oficina</a>
-      <a class="btn ghost" href="tiktok.html" id="btntt">🎵 Conectar TikTok</a>
+      <a class="btn ghost solo-cur" href="oficina.html" id="btnofi">🏢 Oficina</a>
+      <a class="btn ghost solo-cur" href="tiktok.html" id="btntt">🎵 Conectar TikTok</a>
       <button class="btn" id="btngen" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Generar vídeo</button>
     </div>
   </header>
+
+  <nav class="canales" id="canales" hidden aria-label="Canal"><button type="button" data-c="curioteca">Curioteca</button><button type="button" data-c="neonleonida">Neón Leonida · GTA 6</button></nav>
 
   <section class="gate" id="gate" hidden>
     <form class="card reveal" id="loginform">
@@ -284,7 +297,7 @@
   </section>
 
   <main id="app" hidden style="display:flex;flex-direction:column;gap:20px">
-    <section class="card now reveal" id="now">
+    <section class="card now reveal solo-cur" id="now">
       <div class="ring" id="ring">
         <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="bar" id="ringbar" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
         <div class="mid"><div><div class="pct" id="pct">—</div><div class="sub" id="pctsub">hoy</div></div></div>
@@ -296,16 +309,16 @@
       </div>
     </section>
 
-    <section class="card flow reveal" id="flow" aria-label="Fases del vídeo"></section>
+    <section class="card flow reveal solo-cur" id="flow" aria-label="Fases del vídeo"></section>
 
-    <section class="card panel reveal plegable" id="agentesbox">
+    <section class="card panel reveal plegable solo-cur" id="agentesbox">
       <details id="agdet">
         <summary><h3>Equipo de agentes <span id="agsum"></span> <a href="oficina.html" style="font-size:13px;color:var(--orange)">Ver la oficina →</a></h3></summary>
         <div class="ofi" id="ofi"></div>
         <div class="ags" id="ags"></div>
       </details>
     </section>
-    <section class="card panel reveal plegable" id="explbox">
+    <section class="card panel reveal plegable solo-cur" id="explbox">
       <details id="expldet">
         <summary><h3>Mejoras del explorador <span id="explcnt" class="pill"></span> <span id="explsum">Ve Shorts todo el día y enseña al resto de agentes</span></h3></summary>
         <div class="expl">
@@ -320,7 +333,7 @@
       <div class="card kpi reveal"><span class="lab">Programados</span><span class="num or" data-k="sched">0</span><span class="hint">esperando su hora</span></div>
       <div class="card kpi reveal"><span class="lab">Publicados</span><span class="num ok" data-k="pub">0</span><span class="hint" id="pubhint">en alguna red</span></div>
       <div class="card kpi reveal"><span class="lab">Visitas</span><span class="num" data-k="views">0</span><span class="hint" id="viewshint">al conectar las redes</span></div>
-      <div class="card kpi reveal"><span class="lab">Días fallidos</span><span class="num" data-k="miss">0</span><span class="hint">sin vídeo diario</span></div>
+      <div class="card kpi reveal solo-cur"><span class="lab">Días fallidos</span><span class="num" data-k="miss">0</span><span class="hint">sin vídeo diario</span></div>
       <div class="card kpi reveal" title="Minutos de GitHub Actions gastados este mes (aproximado). El plan gratuito da 2.000 al mes y se reinicia el día 1."><span class="lab">Minutos GitHub</span><span class="num" id="mins">—</span><div class="meter"><i id="minsbar"></i></div><span class="hint" id="minshint">de 2.000 gratis este mes</span></div>
     </section>
 
@@ -336,7 +349,17 @@
         </div>
       </div>
       <div class="stack">
-        <div class="card panel reveal">
+        <div class="card panel reveal solo-neon" id="neonbox">
+          <h3>Neón Leonida <span id="neonsum">canal de GTA 6</span></h3>
+          <p class="note" id="ytestado">Comprobando YouTube…</p>
+          <div class="row" style="margin:8px 0 14px"><button class="btn" type="button" id="btnyt">Conectar YouTube</button></div>
+          <div class="sched">
+            <label class="field">Horas de publicación<input id="nhoras" placeholder="13:00,20:00" maxlength="60"></label>
+            <label class="switch"><input type="checkbox" id="nactivo"> Publicación automática activada</label>
+          </div>
+          <p class="note">Los vídeos los monta Claude con el material oficial de Rockstar y tu gameplay de PS5. Aquí ves la cola, cambias fechas y publicas ya. Se suben solo a YouTube, a la cuenta conectada arriba.</p>
+        </div>
+        <div class="card panel reveal solo-cur">
           <h3>Horario automático <span id="schedmsg"></span></h3>
           <div class="sched">
             <label class="field">Crear el vídeo a las<input type="time" id="hgen" step="600"></label>
@@ -352,9 +375,9 @@
             <input class="field" id="ntema" placeholder="Ej.: el pueblo español sin coches" maxlength="300" required style="background:var(--tint);border:1px solid var(--line-2);border-radius:11px;padding:9px 11px">
             <button class="btn sm" type="submit">Añadir</button>
             <textarea id="nnotas" placeholder="Notas opcionales: enfoque, dato que quieres que salga…" maxlength="1000" style="background:var(--tint);border:1px solid var(--line-2);border-radius:11px;padding:9px 11px"></textarea>
-            <label class="opt"><input type="checkbox" id="nserie"> Serie de 3 partes (una parte cada día, con suspense al final)</label>
+            <label class="opt solo-cur"><input type="checkbox" id="nserie"> Serie de 3 partes (una parte cada día, con suspense al final)</label>
           </form>
-          <div class="series" id="series"></div>
+          <div class="series solo-cur" id="series"></div>
           <div class="temas" id="temas"></div>
           <p class="note">Si hay una serie a medias, el próximo vídeo es su siguiente parte. Si no, se usa el primer tema de la cola; y si la cola está vacía, la IA elige (a veces empieza una serie).</p>
         </div>
@@ -364,14 +387,14 @@
           <div class="cal-lab"><span id="cal0"></span><span>hoy</span></div>
           <div class="legend"><span style="--c: var(--ok)">Vídeo</span><span style="--c: var(--bad)">Falló</span><span style="--c: var(--orange)">En curso</span><span style="--c: #f1ede7">Nada</span></div>
         </div>
-        <div class="card panel reveal">
+        <div class="card panel reveal solo-cur">
           <h3>Piezas del sistema <span id="partsum"></span></h3>
           <div class="parts" id="parts"></div>
         </div>
       </div>
     </section>
 
-    <section class="card panel reveal">
+    <section class="card panel reveal solo-cur">
       <h3>Actividad <span id="runsum"></span></h3>
       <div class="runs" id="runs"></div>
       <button class="btn ghost sm more" id="more" hidden>Ver más</button>
@@ -387,7 +410,7 @@
     <h2>Generar un vídeo ahora</h2>
     <p>Tarda unos 25 minutos. Se programará para tu hora de publicación y podrás cambiarla después.</p>
     <label class="field">Tema (opcional)<input id="gtema" maxlength="300" placeholder="Vacío: el primero de la cola o lo elige la IA"></label>
-    <label class="field">Estilo<select id="gestilo"><option value="monigotes">Monigotes animados</option><option value="realista">Realista (imágenes IA)</option></select></label>
+    <label class="field solo-cur">Estilo<select id="gestilo"><option value="monigotes">Monigotes animados</option><option value="realista">Realista (imágenes IA)</option></select></label>
     <label class="opt"><input type="checkbox" id="gprueba"> Solo prueba (queda guardado para verlo; no se publica)</label>
     <div class="row"><button class="btn" type="submit" id="gok">Generar</button><button class="btn ghost" type="button" id="gcancel">Cancelar</button></div>
     <div class="msg" id="gmsg"></div>
@@ -421,7 +444,17 @@
   const VSTATE = { listo: ['Guardado', ''], programado: ['Programado', 'or'], publicando: ['Publicando…', 'wait'], publicado: ['Publicado', 'ok'], error: ['Error', 'bad'], descartado: ['Descartado', ''] };
   const DEFAULT_STEPS = [['idea', 'Idea y guion'], ['voz', 'Voz'], ['escenas', 'Escenas'], ['montaje', 'Montaje'], ['publicar', 'Programación']].map(([key, label]) => ({ key, label, state: 'pendiente', detail: '' }));
 
-  const S = { panel: null, videos: [], temas: [], ajustes: null, series: [], lecs: [], props: [], vistos: 0, ultimo: null };
+  // Canal elegido en las pestañas (se recuerda en este navegador)
+  let CANAL = 'curioteca';
+  try { CANAL = localStorage.getItem('canal') === 'neonleonida' ? 'neonleonida' : 'curioteca'; } catch {}
+  const NOMBRE = { curioteca: 'Curioteca', neonleonida: 'Neón Leonida' };
+  function aplicarCanal() {
+    document.body.classList.toggle('neon', CANAL === 'neonleonida');
+    $('marca').textContent = NOMBRE[CANAL];
+    document.title = NOMBRE[CANAL] + ' · Centro de mando';
+    document.querySelectorAll('#canales button').forEach((b) => b.classList.toggle('on', b.dataset.c === CANAL));
+  }
+  const S = { canales: [], panel: null, videos: [], temas: [], ajustes: null, series: [], lecs: [], props: [], vistos: 0, ultimo: null };
   let prevSteps = {}, tick = null, showAll = false, signCache = {};
 
   const PARA = { guionista: 'Guion', titular: 'Título', director: 'Dirección', escenografo: 'Fondos', community: 'Redes', todos: 'Todos' };
@@ -743,21 +776,39 @@
     $('runsum').textContent = `${all.length} ejecuciones`;
   }
 
+  function renderNeon() {
+    const c = (S.canales || []).find((x) => x.id === 'neonleonida');
+    if (!c) return;
+    const yt = c.youtube_canal;
+    $('ytestado').innerHTML = yt ? `YouTube: <span class="ytok">conectado</span> · ${String(yt).replace(/[<>&]/g, '')}`
+      : 'YouTube: <span class="ytno">sin conectar</span> — pulsa el botón y entra con la cuenta del canal Neón Leonida.';
+    $('btnyt').textContent = yt ? 'Volver a conectar YouTube' : 'Conectar YouTube';
+    if (document.activeElement !== $('nhoras')) $('nhoras').value = c.horas_publicar || '';
+    $('nactivo').checked = !!c.activo;
+    const prog = S.videos.filter((v) => v.estado === 'programado').length, pub = S.videos.filter((v) => v.estado === 'publicado').length;
+    $('neonsum').textContent = `${prog} programados · ${pub} publicados`;
+  }
+  async function saveCanal(patch) {
+    const { error } = await sb.from('canales').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', 'neonleonida');
+    error ? toast('No se pudo guardar', true) : toast('Guardado');
+  }
   function renderAll() {
+    renderNeon();
     renderNow(); renderFlow(); renderAgentes(); renderKpis(); renderQueue(); renderAjustes(); renderTemas(); renderCal(); renderParts(); renderVids(); renderRuns();
     if (S.panel) $('upd').textContent = 'Datos actualizados ' + ago(S.panel.updated || new Date().toISOString());
   }
 
   async function loadAll() {
-    const [p, v, t, a, se] = await Promise.all([
+    const [p, v, t, a, se, ca] = await Promise.all([
       sb.from('panel').select('data').eq('id', 1).maybeSingle(),
-      sb.from('videos').select('*').order('creado_at', { ascending: false }).limit(200),
-      sb.from('temas').select('*').order('creado_at'),
+      sb.from('videos').select('*').eq('canal', CANAL).order('creado_at', { ascending: false }).limit(200),
+      sb.from('temas').select('*').eq('canal', CANAL).order('creado_at'),
       sb.from('ajustes').select('*').eq('id', 1).maybeSingle(),
       sb.from('series').select('id, tema, titulo, partes, siguiente, estado, creado_at').order('creado_at'),
+      sb.from('canales').select('*'),
     ]);
     if (p.error || !p.data) { $('livetxt').textContent = p.error ? 'Error al leer' : 'Sin acceso con esta cuenta'; $('live').className = 'live'; return; }
-    S.panel = p.data.data; S.videos = v.data || []; S.temas = t.data || []; S.ajustes = a.data; S.series = se.data || [];
+    S.panel = p.data.data; S.videos = v.data || []; S.temas = t.data || []; S.ajustes = a.data; S.series = se.data || []; S.canales = ca.data || S.canales;
     $('livetxt').textContent = 'En directo'; $('live').className = 'live on';
     renderAll();
   }
@@ -788,22 +839,23 @@
   }
 
   function startApp() {
-    $('gate').hidden = true; $('app').hidden = false; $('btngen').hidden = false;
+    $('gate').hidden = true; $('app').hidden = false; $('btngen').hidden = false; $('canales').hidden = false; aplicarCanal();
     loadAll(); loadMinutos(); loadExpl(); setInterval(loadExpl, 300000);
     sb.channel('todo')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'panel' }, (x) => { if (x.new && x.new.data) { S.panel = x.new.data; renderAll(); } })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'videos' }, () => sb.from('videos').select('*').order('creado_at', { ascending: false }).limit(200).then(({ data }) => { S.videos = data || []; renderAll(); }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'temas' }, () => sb.from('temas').select('*').order('creado_at').then(({ data }) => { S.temas = data || []; renderTemas(); }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'videos' }, () => sb.from('videos').select('*').eq('canal', CANAL).order('creado_at', { ascending: false }).limit(200).then(({ data }) => { S.videos = data || []; renderAll(); }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'temas' }, () => sb.from('temas').select('*').eq('canal', CANAL).order('creado_at').then(({ data }) => { S.temas = data || []; renderTemas(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'series' }, () => sb.from('series').select('id, tema, titulo, partes, siguiente, estado, creado_at').order('creado_at').then(({ data }) => { S.series = data || []; renderSeries(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'aprendizajes' }, () => loadExpl())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propuestas' }, () => loadExpl())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'canales' }, () => sb.from('canales').select('*').then(({ data }) => { S.canales = data || []; renderNeon(); }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes' }, (x) => { if (x.new) { S.ajustes = x.new; renderAjustes(); renderNow(); } })
       .subscribe((s) => { if (s === 'SUBSCRIBED') { $('livetxt').textContent = 'En directo'; $('live').className = 'live on'; } });
     setInterval(loadAll, 120000);
     setInterval(loadMinutos, 600000);
     setInterval(() => { if (S.panel) $('upd').textContent = 'Datos actualizados ' + ago(S.panel.updated); }, 20000);
   }
-  function showGate() { $('app').hidden = true; $('gate').hidden = false; $('btngen').hidden = true; $('livetxt').textContent = 'Sin sesión'; $('live').className = 'live'; }
+  function showGate() { $('canales').hidden = true; $('app').hidden = true; $('gate').hidden = false; $('btngen').hidden = true; $('livetxt').textContent = 'Sin sesión'; $('live').className = 'live'; }
 
   // eventos
   const msg = (el, t, err) => { el.textContent = t; el.className = 'msg' + (err ? ' err' : ''); };
@@ -828,15 +880,30 @@
     e.preventDefault();
     const tema = $('ntema').value.trim(), notas = $('nnotas').value.trim(), serie = $('nserie').checked;
     if (tema.length < 3) return;
-    const { error } = await sb.from('temas').insert({ tema, notas: notas || null, tipo: serie ? 'serie' : 'video', partes: 3 });
+    const { error } = await sb.from('temas').insert({ tema, notas: notas || null, tipo: serie && CANAL === 'curioteca' ? 'serie' : 'video', partes: 3, canal: CANAL });
     if (error) return toast('No se pudo añadir el tema', true);
     $('ntema').value = ''; $('nnotas').value = ''; $('nserie').checked = false; toast(serie ? 'Serie añadida a la cola' : 'Tema añadido a la cola');
   });
+  document.querySelectorAll('#canales button').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.c === CANAL) return;
+    CANAL = b.dataset.c; try { localStorage.setItem('canal', CANAL); } catch {}
+    aplicarCanal(); S.videos = []; S.temas = []; renderAll(); loadAll();
+  }));
+  $('btnyt').addEventListener('click', async () => {
+    const d = await callControl({ action: 'youtube_url', canal: 'neonleonida' }, $('btnyt'), 'Abriendo Google…');
+    if (d && d.url) location.href = d.url;
+  });
+  $('nhoras').addEventListener('change', () => {
+    const v = $('nhoras').value.split(',').map((x) => x.trim()).filter((x) => /^\d{1,2}:\d{2}$/.test(x)).map((x) => x.padStart(5, '0'));
+    if (!v.length) return toast('Escribe las horas así: 13:00,20:00', true);
+    saveCanal({ horas_publicar: v.join(',') });
+  });
+  $('nactivo').addEventListener('change', () => saveCanal({ activo: $('nactivo').checked }));
   $('btngen').addEventListener('click', () => { $('gtema').value = ''; $('gestilo').value = (S.ajustes && S.ajustes.estilo) || 'monigotes'; $('gprueba').checked = false; msg($('gmsg'), ''); $('genmodal').hidden = false; $('gtema').focus(); });
   $('gcancel').addEventListener('click', () => { $('genmodal').hidden = true; });
   $('genform').addEventListener('submit', async (e) => {
     e.preventDefault(); msg($('gmsg'), 'Lanzando…');
-    const r = await callControl({ action: 'generar', tema: $('gtema').value.trim(), estilo: $('gestilo').value, prueba: $('gprueba').checked }, $('gok'), 'Generación lanzada: verás el progreso arriba en un minuto');
+    const r = await callControl({ action: 'generar', canal: CANAL, tema: $('gtema').value.trim(), estilo: $('gestilo').value, prueba: $('gprueba').checked }, $('gok'), 'Generación lanzada: verás el progreso arriba en un minuto');
     if (r) $('genmodal').hidden = true; else msg($('gmsg'), 'No se pudo lanzar. Mira el aviso de abajo.', true);
   });
   const closeVideo = () => { $('mv').pause(); $('mv').removeAttribute('src'); $('modal').hidden = true; };
